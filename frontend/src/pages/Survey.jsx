@@ -80,8 +80,8 @@ export default function Survey() {
                     <span
                       className="text-sm font-semibold px-2.5 py-0.5 rounded-full"
                       style={{
-                        background: weights[category] >= 50 ? '#1a274415' : '#f3f4f6',
-                        color: weights[category] >= 50 ? '#1a2744' : '#6b7280',
+                        background: weights[category] > 50 ? '#096e1315' : weights[category] < 50 ? '#9b233515' : '#f3f4f6',
+                        color: weights[category] > 50 ? '#096e13' : weights[category] < 50 ? '#9b2335' : '#6b7280',
                       }}
                     >
                       {weights[category]}

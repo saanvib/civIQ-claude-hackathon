@@ -1,7 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, AlertTriangle } from 'lucide-react'
+import { ChevronRight, AlertTriangle, Scale } from 'lucide-react'
+
+const BOTH_SIDES = {
+  Climate: {
+    label: 'Climate Policy',
+    sideA: { title: 'Stronger government action', description: 'Supports federal emissions targets, clean energy mandates, carbon pricing, and investment in renewable infrastructure to address climate change urgently.' },
+    sideB: { title: 'Market-driven approach', description: 'Prefers private sector innovation, energy independence, and consumer choice over mandates; emphasizes economic competitiveness and gradual transition.' },
+  },
+  Healthcare: {
+    label: 'Healthcare',
+    sideA: { title: 'Expanded public coverage', description: 'Supports a public option, Medicare expansion, and government controls on drug pricing to ensure universal access to affordable care.' },
+    sideB: { title: 'Private market solutions', description: 'Favors competition, deregulation, and consumer choice to lower costs; opposes large government programs as inefficient or fiscally burdensome.' },
+  },
+  Economy: {
+    label: 'Economic Policy',
+    sideA: { title: 'Progressive taxation & investment', description: 'Supports higher taxes on corporations and the wealthy to fund social programs, infrastructure, worker protections, and reduce income inequality.' },
+    sideB: { title: 'Lower taxes & reduced spending', description: 'Prioritizes tax cuts, deregulation, and fiscal restraint to stimulate private growth, entrepreneurship, and individual economic freedom.' },
+  },
+  CriminalJustice: {
+    label: 'Criminal Justice',
+    sideA: { title: 'Reform-oriented', description: 'Supports reducing incarceration rates, ending mandatory minimums, police accountability measures, and addressing systemic inequities in the justice system.' },
+    sideB: { title: 'Law & order focus', description: 'Prioritizes public safety, stricter sentencing, strong law enforcement funding, and personal accountability as the foundation of a just society.' },
+  },
+}
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
@@ -24,8 +47,8 @@ function PartyPill({ party }) {
     <span
       className="text-xs font-semibold px-2 py-0.5 rounded-full"
       style={{
-        background: isD ? '#1a274415' : '#9b233515',
-        color: isD ? '#1a2744' : '#9b2335',
+        background: isD ? '#0015BC15' : '#9b233515',
+        color: isD ? '#0015BC' : '#9b2335',
       }}
     >
       {isD ? 'Dem' : party === 'R' ? 'Rep' : party}
@@ -146,6 +169,7 @@ export default function Results() {
   const [gaps, setGaps] = useState([])
   const [activeLegislation, setActiveLegislation] = useState([])
   const [loading, setLoading] = useState(true)
+  const neutralCategories = JSON.parse(sessionStorage.getItem('neutralCategories') ?? '[]')
 
   useEffect(() => {
     const rawWeights = sessionStorage.getItem('extractedWeights')
@@ -295,6 +319,38 @@ export default function Results() {
               ))}
             </Section>
           )}
+
+          {/* Both sides for neutral categories */}
+          {neutralCategories.length > 0 && (
+            <Section title="Explore both sides">
+              {neutralCategories.filter(cat => BOTH_SIDES[cat]).map((cat, i) => {
+                const { label, sideA, sideB } = BOTH_SIDES[cat]
+                return (
+                  <div key={cat}>
+                    <div className="flex flex-col gap-4 p-5">
+                      <div className="flex items-center gap-2">
+                        <Scale size={15} className="text-gray-400 shrink-0" />
+                        <span className="text-sm font-semibold text-[#1a2744]">{label}</span>
+                        <span className="text-xs text-gray-400 ml-1">— you expressed no strong preference</span>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex flex-col gap-1.5">
+                          <span className="text-xs font-semibold text-[#1a2744] uppercase tracking-wide">{sideA.title}</span>
+                          <p className="text-sm text-gray-500 leading-relaxed">{sideA.description}</p>
+                        </div>
+                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex flex-col gap-1.5">
+                          <span className="text-xs font-semibold text-[#9b2335] uppercase tracking-wide">{sideB.title}</span>
+                          <p className="text-sm text-gray-500 leading-relaxed">{sideB.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {i < neutralCategories.filter(c => BOTH_SIDES[c]).length - 1 && <div className="border-t border-gray-100" />}
+                  </div>
+                )
+              })}
+            </Section>
+          )}
+
 
           <Button
             size="lg"

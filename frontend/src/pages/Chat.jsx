@@ -95,6 +95,33 @@ export default function Chat() {
     setMessages(prev => [...prev, { role: 'user', text: answer }])
     collectedAnswers.current = [...collectedAnswers.current, answer]
 
+    const totalAsked = askedQuestions.current.length
+
+    // Hard cap at 4 questions — wrap up and save neutral categories for Results
+    if (totalAsked >= 4) {
+      setLoading(true)
+      try {
+        const r = await fetch(`${API}/api/clarify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            weights: latestWeights.current,
+            questions: askedQuestions.current,
+            answers: collectedAnswers.current,
+          }),
+        })
+        const data = await r.json()
+        if (data.weights) {
+          latestWeights.current = data.weights
+          sessionStorage.setItem('extractedWeights', JSON.stringify(data.weights))
+        }
+        sessionStorage.setItem('neutralCategories', JSON.stringify(data.unclear_categories ?? []))
+      } catch {}
+      setLoading(false)
+      setDone(true)
+      return
+    }
+
     // If there are queued questions, show the next one after a short typing delay
     if (questionQueue.current.length > 0) {
       const [next, ...rest] = questionQueue.current
@@ -130,11 +157,11 @@ export default function Chat() {
       const followUps = data.questions ?? []
       if (followUps.length > 0) {
         const [first, ...rest] = followUps
-        askedQuestions.current = [first]
-        collectedAnswers.current = []
+        askedQuestions.current = [...askedQuestions.current, first]
         questionQueue.current = rest
         setMessages(prev => [...prev, { role: 'claude', text: first }])
       } else {
+        sessionStorage.setItem('neutralCategories', JSON.stringify(data.unclear_categories ?? []))
         setDone(true)
       }
     } catch {
