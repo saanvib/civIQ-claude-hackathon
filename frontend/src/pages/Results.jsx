@@ -4,80 +4,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronRight, AlertTriangle } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-
-const MOCK_OFFICIALS = [
-  { name: "Jane Smith", party: "D", score: 87, rationale: "Strong alignment on climate and healthcare. Minor gap on immigration." },
-  { name: "Maria Chen", party: "D", score: 74, rationale: "Close match on housing and labor. Some divergence on criminal justice." },
-  { name: "Bob Lee", party: "R", score: 61, rationale: "Aligned on economy but diverges on healthcare and climate." },
-]
-
-const MOCK_BILLS = [
-  {
-    id: 1,
-    name: "Clean Energy Act 2024",
-    summary: "Mandates 50% renewable energy by 2035 and provides tax credits for electric vehicles and home solar installations.",
-    match: 92,
-    category: "Climate",
-    url: "https://congress.gov",
-    votes: [
-      { name: "Jane Smith", party: "D", vote: "Yes" },
-      { name: "Bob Lee", party: "R", vote: "No" },
-      { name: "Maria Chen", party: "D", vote: "Yes" },
-    ]
-  },
-  {
-    id: 2,
-    name: "Medicare Expansion Bill",
-    summary: "Extends Medicare eligibility to age 60 and adds dental and vision coverage for all current recipients.",
-    match: 88,
-    category: "Healthcare",
-    url: "https://congress.gov",
-    votes: [
-      { name: "Jane Smith", party: "D", vote: "Yes" },
-      { name: "Bob Lee", party: "R", vote: "No" },
-      { name: "Maria Chen", party: "D", vote: "Yes" },
-    ]
-  },
-  {
-    id: 3,
-    name: "Affordable Housing Fund",
-    summary: "Allocates $50B to build 1 million affordable housing units over 10 years in high cost-of-living areas.",
-    match: 76,
-    category: "Housing",
-    url: "https://congress.gov",
-    votes: [
-      { name: "Jane Smith", party: "D", vote: "Yes" },
-      { name: "Bob Lee", party: "R", vote: "Yes" },
-      { name: "Maria Chen", party: "D", vote: "No" },
-    ]
-  },
-]
-
-const MOCK_GAPS = [
-  { category: "Immigration", note: "Your top matches diverge significantly on this issue" },
-  { category: "Criminal Justice", note: "Limited voting history available for comparison" },
-]
-
-const MOCK_POLLS = [
-  {
-    id: 1,
-    type: "yesno",
-    question: "Do you support the Clean Energy Act 2024?",
-    results: { Yes: 63, No: 37 },
-  },
-  {
-    id: 2,
-    type: "agree",
-    question: "The federal government should prioritize job creation over environmental regulations when they conflict.",
-    results: { Agree: 44, Neutral: 21, Disagree: 35 },
-  },
-  {
-    id: 3,
-    type: "rank",
-    question: "Rank your top 3 issues in order of priority.",
-    options: ["Climate", "Healthcare", "Housing", "Economy", "Education"],
-  },
-]
+const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
 
 function ScoreBar({ score }) {
   const color = score >= 75 ? '#1a2744' : score >= 55 ? '#4a6fa5' : '#9b2335'
@@ -214,9 +141,11 @@ function ActiveBillCard({ bill }) {
 
 export default function Results() {
   const navigate = useNavigate()
-  const [officials, setOfficials] = useState(MOCK_OFFICIALS)
-  const [bills, setBills] = useState(MOCK_BILLS)
-  const [gaps, setGaps] = useState(MOCK_GAPS)
+  const [officials, setOfficials] = useState([])
+  const [bills, setBills] = useState([])
+  const [gaps, setGaps] = useState([])
+  const [activeLegislation, setActiveLegislation] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const rawWeights = sessionStorage.getItem('extractedWeights')
@@ -253,17 +182,15 @@ export default function Results() {
           return avg < 50
         }).map(cat => ({ category: cat, note: `Your top matches diverge on ${cat.toLowerCase()} policy` }))
         if (computed.length > 0) setGaps(computed)
-      })
-      .catch(() => {})
-
-    fetch(`${API}/api/bills`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weights, limit: 6 }),
+      }
+      if (billsRes.status === 'fulfilled' && Array.isArray(billsRes.value) && billsRes.value.length > 0) {
+        setBills(billsRes.value)
+      }
+      if (activeRes.status === 'fulfilled' && Array.isArray(activeRes.value)) {
+        setActiveLegislation(activeRes.value)
+      }
+      setLoading(false)
     })
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data) && data.length > 0) setBills(data) })
-      .catch(() => {})
   }, [])
 
   if (loading) {
@@ -328,15 +255,17 @@ export default function Results() {
             }
           </Section>
 
-          {/* Bills + polls interleaved */}
-          <Section title="Matching bills & polls">
-            {bills.map((bill, i) => (
-              <div key={bill.id}>
-                <BillCard bill={bill} />
-                {MOCK_POLLS[i] && <PollCard poll={MOCK_POLLS[i]} />}
-                {i < bills.length - 1 && <div className="border-t border-gray-100" />}
-              </div>
-            ))}
+          {/* Matching bills */}
+          <Section title="Matching bills">
+            {bills.length === 0
+              ? <p className="p-5 text-sm text-gray-400">No matching bills found.</p>
+              : bills.map((bill, i) => (
+                <div key={bill.id}>
+                  <BillCard bill={bill} />
+                  {i < bills.length - 1 && <div className="border-t border-gray-100" />}
+                </div>
+              ))
+            }
           </Section>
 
           {gaps.length > 0 && (
