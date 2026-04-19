@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 const MOCK_QUESTIONS = [
   "How important is affordable housing policy to you compared to climate change?",
   "Do you support expanding Medicare or keeping private insurance options?"
@@ -17,6 +19,31 @@ export default function Chat() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Fire extraction in background while mock chat plays out
+    const raw = sessionStorage.getItem('surveyPayload')
+    const mode = sessionStorage.getItem('mode') || 'sliders'
+    if (raw) {
+      const payload = JSON.parse(raw)
+      // Normalize 'Criminal Justice' → 'CriminalJustice' for backend
+      let body
+      if (mode === 'sliders') {
+        const normalized = Object.fromEntries(
+          Object.entries(payload).map(([k, v]) => [k.replace(' ', ''), v])
+        )
+        body = { sliders: normalized }
+      } else {
+        body = { text: payload.rawText }
+      }
+      fetch(`${API}/api/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then(r => r.json())
+        .then(data => { if (data.weights) sessionStorage.setItem('extractedWeights', JSON.stringify(data.weights)) })
+        .catch(() => {})
+    }
+
     // Simulate Claude asking first questions
     setTimeout(() => {
       setMessages(MOCK_QUESTIONS.map(q => ({ role: 'claude', text: q })))

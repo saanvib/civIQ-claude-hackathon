@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -274,6 +276,21 @@ function PollCard({ poll }) {
 
 export default function Results() {
   const navigate = useNavigate()
+  const [officials, setOfficials] = useState(MOCK_OFFICIALS)
+
+  useEffect(() => {
+    const rawWeights = sessionStorage.getItem('extractedWeights')
+    const state = sessionStorage.getItem('state') || 'CA'
+    if (!rawWeights) return
+    fetch(`${API}/api/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights: JSON.parse(rawWeights), state, chamber: 'all' }),
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setOfficials(data) })
+      .catch(() => {})
+  }, [])
 
   return (
     <div className="min-h-screen px-4 py-12 flex flex-col items-center">
@@ -290,7 +307,7 @@ export default function Results() {
             <CardTitle className="text-base">Top aligned officials</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {MOCK_OFFICIALS.map((official, i) => (
+            {officials.map((official, i) => (
               <div key={i} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -301,7 +318,7 @@ export default function Results() {
                 </div>
                 <ScoreBar score={official.score} />
                 <p className="text-sm text-muted-foreground">{official.rationale}</p>
-                {i < MOCK_OFFICIALS.length - 1 && <Separator />}
+                {i < officials.length - 1 && <Separator />}
               </div>
             ))}
           </CardContent>
