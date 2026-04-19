@@ -271,7 +271,7 @@ export default function Results() {
                       </div>
                     </div>
                     <ScoreBar score={official.score} />
-                    <p className="text-sm text-gray-500 leading-relaxed">{official.rationale}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{official.rationale?.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')}</p>
                   </div>
                   {i < officials.length - 1 && <div className="border-t border-gray-100" />}
                 </div>
