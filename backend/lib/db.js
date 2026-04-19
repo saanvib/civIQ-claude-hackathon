@@ -17,8 +17,8 @@ function getClient() {
 export async function getLegislators(state, chamber = 'all') {
   const supabase = getClient()
   let query = supabase
-    .from('legislators_cache')
-    .select('id, name, party, state, chamber, vote_vector')
+    .from('legislator_votes')
+    .select('legislator_id, name, party, state, chamber, vote_vector')
     .eq('state', state.toUpperCase())
 
   if (chamber !== 'all') {

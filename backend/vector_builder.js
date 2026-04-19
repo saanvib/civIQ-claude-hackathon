@@ -121,7 +121,7 @@ export async function getLegislatorVector(legislatorId) {
   const { getSupabase } = await import("./supabase_client.js");
   const sb = getSupabase();
   const { data, error } = await sb
-    .from("legislators_cache")
+    .from("legislator_votes")
     .select("*")
     .eq("legislator_id", legislatorId)
     .single();
@@ -137,7 +137,7 @@ export async function getAllLegislators() {
   const { getSupabase } = await import("./supabase_client.js");
   const sb = getSupabase();
   const { data, error } = await sb
-    .from("legislators_cache")
+    .from("legislator_votes")
     .select("*")
     .not("vote_vector", "is", null)
     .order("name");
