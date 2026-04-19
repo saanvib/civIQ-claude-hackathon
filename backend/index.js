@@ -3,7 +3,7 @@ dotenv.config()
 import express from 'express'
 import cors from 'cors'
 import { extractWeights, explainAlignment } from './lib/claude.js'
-import { getLegislators } from './lib/db.js'
+import { getAllLegislators, getLegislatorVector } from './vector_builder.js'
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }))
@@ -78,20 +78,46 @@ app.post('/api/extract', async (req, res) => {
 })
 
 // GET /api/legislators?state=CA&chamber=all
-// Response: [{ id, name, party, state, chamber, vote_vector }]
+// Or GET /api/legislators?chamber=senate&party=Democrat&limit=10
+// Response: [{ id, name, party, state, chamber, vote_vector }] or { count, legislators }
 app.get('/api/legislators', async (req, res) => {
-  const { state, chamber = 'all' } = req.query
-  if (!state) return res.status(400).json({ error: 'state query param required.' })
+  const { state, chamber, party, limit } = req.query
 
   try {
-    const legislators = await getLegislators(state, chamber)
-    res.json(legislators)
+    let legislators = await getAllLegislators()
+
+    // Filter by state if provided (for app compatibility)
+    if (state) {
+      legislators = legislators.filter(l => l.state === state)
+    }
+
+    // Optional filters
+    if (chamber && chamber !== 'all') {
+      legislators = legislators.filter(l => l.chamber === chamber)
+    }
+    if (party) {
+      legislators = legislators.filter(l => l.party === party)
+    }
+    if (limit) {
+      legislators = legislators.slice(0, parseInt(limit, 10))
+    }
+
+    // If state was provided, return array directly (app expects this)
+    if (state) {
+      res.json(legislators)
+    } else {
+      res.json({ count: legislators.length, legislators })
+    }
   } catch (err) {
     console.error('DB fetch error, returning mock data:', err)
-    const filtered = chamber === 'all'
-      ? MOCK_LEGISLATORS
-      : MOCK_LEGISLATORS.filter(l => l.chamber === chamber)
-    res.json(filtered)
+    let filtered = MOCK_LEGISLATORS
+    if (state) {
+      filtered = filtered.filter(l => l.state === state)
+    }
+    if (chamber && chamber !== 'all') {
+      filtered = filtered.filter(l => l.chamber === chamber)
+    }
+    res.json(state ? filtered : { count: filtered.length, legislators: filtered })
   }
 })
 
@@ -107,7 +133,8 @@ app.post('/api/score', async (req, res) => {
 
   let legislators
   try {
-    legislators = await getLegislators(state, chamber)
+    legislators = await getAllLegislators()
+    legislators = legislators.filter(l => l.state === state && (chamber === 'all' || l.chamber === chamber))
   } catch (err) {
     console.error('DB fetch error, using mock legislators:', err)
     legislators = chamber === 'all'
@@ -142,6 +169,42 @@ app.post('/api/score', async (req, res) => {
   }))
 
   res.json(results)
+})
+
+// ── Data layer endpoints (built by data team) ─────────────────────────────────
+
+/**
+ * GET /api/legislators/:id
+ * Returns one legislator by their ProPublica bioguide ID.
+ * Example: GET /api/legislators/S000148
+ */
+app.get('/api/legislators/:id', async (req, res) => {
+  try {
+    const legislator = await getLegislatorVector(req.params.id)
+    if (!legislator) {
+      return res.status(404).json({ error: `Legislator ${req.params.id} not found in cache. Run the seed script first.` })
+    }
+    res.json(legislator)
+  } catch (err) {
+    console.error('/api/legislators/:id error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/health
+ * Quick check that the server is up and env vars are loaded.
+ */
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    env: {
+      propublica:  !!process.env.PROPUBLICA_API_KEY,
+      supabase_url: !!process.env.SUPABASE_URL,
+      supabase_key: !!process.env.SUPABASE_ANON_KEY,
+      anthropic:   !!process.env.ANTHROPIC_API_KEY,
+    }
+  })
 })
 
 const PORT = process.env.PORT || 3001
