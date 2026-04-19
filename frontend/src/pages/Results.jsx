@@ -281,18 +281,42 @@ function PollCard({ poll }) {
 export default function Results() {
   const navigate = useNavigate()
   const [officials, setOfficials] = useState(MOCK_OFFICIALS)
+  const [bills, setBills] = useState(MOCK_BILLS)
+  const [gaps, setGaps] = useState(MOCK_GAPS)
 
   useEffect(() => {
     const rawWeights = sessionStorage.getItem('extractedWeights')
     const state = sessionStorage.getItem('state') || 'CA'
     if (!rawWeights) return
+    const weights = JSON.parse(rawWeights)
+
     fetch(`${API}/api/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weights: JSON.parse(rawWeights), state, chamber: 'all' }),
+      body: JSON.stringify({ weights, state, chamber: 'all' }),
     })
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data) && data.length > 0) setOfficials(data) })
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) return
+        setOfficials(data)
+        // Compute gaps: categories user cares about (≥70) where top officials are weak (<50 avg)
+        const computed = CATEGORIES.filter(cat => {
+          const userWeight = weights[cat] ?? 50
+          if (userWeight < 70) return false
+          const avg = data.reduce((sum, o) => sum + ((o.vote_vector?.[cat] ?? 0.5) * 100), 0) / data.length
+          return avg < 50
+        }).map(cat => ({ category: cat, note: `Your top matches diverge on ${cat.toLowerCase()} policy` }))
+        if (computed.length > 0) setGaps(computed)
+      })
+      .catch(() => {})
+
+    fetch(`${API}/api/bills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights, limit: 6 }),
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setBills(data) })
       .catch(() => {})
   }, [])
 
@@ -347,18 +371,18 @@ export default function Results() {
 
           {/* Bills + polls interleaved */}
           <Section title="Matching bills & polls">
-            {MOCK_BILLS.map((bill, i) => (
+            {bills.map((bill, i) => (
               <div key={bill.id}>
                 <BillCard bill={bill} />
                 {MOCK_POLLS[i] && <PollCard poll={MOCK_POLLS[i]} />}
-                {i < MOCK_BILLS.length - 1 && <div className="border-t border-gray-100" />}
+                {i < bills.length - 1 && <div className="border-t border-gray-100" />}
               </div>
             ))}
           </Section>
 
           {/* Weak match alerts */}
           <Section title="Where alignment breaks down">
-            {MOCK_GAPS.map((gap, i) => (
+            {gaps.map((gap, i) => (
               <div key={i}>
                 <div className="flex items-start gap-3 p-5">
                   <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: '#9b2335' }} />
@@ -367,7 +391,7 @@ export default function Results() {
                     <p className="text-sm text-gray-500 mt-0.5">{gap.note}</p>
                   </div>
                 </div>
-                {i < MOCK_GAPS.length - 1 && <div className="border-t border-gray-100" />}
+                {i < gaps.length - 1 && <div className="border-t border-gray-100" />}
               </div>
             ))}
           </Section>
