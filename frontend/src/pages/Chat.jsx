@@ -10,10 +10,11 @@ export default function Chat() {
   const navigate = useNavigate()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [round, setRound] = useState(0)
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(true)
-  const currentQuestions = useRef([])
+  const questionQueue = useRef([])   // questions not yet shown
+  const askedQuestions = useRef([])  // questions already shown
+  const collectedAnswers = useRef([]) // answers in order
   const latestWeights = useRef(null)
 
   useEffect(() => {
@@ -64,16 +65,18 @@ export default function Chat() {
 
         const questions = data.questions ?? []
         if (questions.length > 0) {
-          currentQuestions.current = questions
-          setMessages(questions.map(q => ({ role: 'claude', text: q })))
+          const [first, ...rest] = questions
+          askedQuestions.current = [first]
+          questionQueue.current = rest
+          setMessages([{ role: 'claude', text: first }])
         } else {
           navigate('/results')
           return
         }
       } catch {
-        const fallback = ['What policy areas matter most to you right now?']
-        currentQuestions.current = fallback
-        setMessages(fallback.map(q => ({ role: 'claude', text: q })))
+        const fallback = 'What policy areas matter most to you right now?'
+        askedQuestions.current = [fallback]
+        setMessages([{ role: 'claude', text: fallback }])
       }
 
       setLoading(false)
@@ -88,19 +91,27 @@ export default function Chat() {
     const answer = input.trim()
     setInput('')
     setMessages(prev => [...prev, { role: 'user', text: answer }])
+    collectedAnswers.current = [...collectedAnswers.current, answer]
+
+    // If there are queued questions, show the next one without an API call
+    if (questionQueue.current.length > 0) {
+      const [next, ...rest] = questionQueue.current
+      askedQuestions.current = [...askedQuestions.current, next]
+      questionQueue.current = rest
+      setMessages(prev => [...prev, { role: 'claude', text: next }])
+      return
+    }
+
+    // Queue exhausted — call clarify with all Q&A to update weights and get more questions
     setLoading(true)
-
-    const nextRound = round + 1
-    setRound(nextRound)
-
     try {
       const r = await fetch(`${API}/api/clarify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weights: latestWeights.current,
-          questions: currentQuestions.current,
-          answers: [answer],
+          questions: askedQuestions.current,
+          answers: collectedAnswers.current,
         }),
       })
       const data = await r.json()
@@ -111,9 +122,12 @@ export default function Chat() {
       }
 
       const followUps = data.questions ?? []
-      if (followUps.length > 0 && nextRound < 2) {
-        currentQuestions.current = followUps
-        setMessages(prev => [...prev, ...followUps.map(q => ({ role: 'claude', text: q }))])
+      if (followUps.length > 0) {
+        const [first, ...rest] = followUps
+        askedQuestions.current = [first]
+        collectedAnswers.current = []
+        questionQueue.current = rest
+        setMessages(prev => [...prev, { role: 'claude', text: first }])
       } else {
         setDone(true)
       }
