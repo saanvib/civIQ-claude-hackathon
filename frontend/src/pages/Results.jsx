@@ -6,23 +6,23 @@ import { ChevronRight, AlertTriangle, Scale } from 'lucide-react'
 const BOTH_SIDES = {
   Climate: {
     label: 'Climate Policy',
-    sideA: { title: 'Stronger government action', description: 'Supports federal emissions targets, clean energy mandates, carbon pricing, and investment in renewable infrastructure to address climate change urgently.' },
-    sideB: { title: 'Market-driven approach', description: 'Prefers private sector innovation, energy independence, and consumer choice over mandates; emphasizes economic competitiveness and gradual transition.' },
+    sideA: { title: 'Stronger government action', description: 'Federal emissions targets, clean energy mandates, and carbon pricing.' },
+    sideB: { title: 'Market-driven approach', description: 'Private sector innovation and energy independence over government mandates.' },
   },
   Healthcare: {
     label: 'Healthcare',
-    sideA: { title: 'Expanded public coverage', description: 'Supports a public option, Medicare expansion, and government controls on drug pricing to ensure universal access to affordable care.' },
-    sideB: { title: 'Private market solutions', description: 'Favors competition, deregulation, and consumer choice to lower costs; opposes large government programs as inefficient or fiscally burdensome.' },
+    sideA: { title: 'Expanded public coverage', description: 'Public option, Medicare expansion, and government drug price controls.' },
+    sideB: { title: 'Private market solutions', description: 'Competition and deregulation to lower costs without large government programs.' },
   },
   Economy: {
     label: 'Economic Policy',
-    sideA: { title: 'Progressive taxation & investment', description: 'Supports higher taxes on corporations and the wealthy to fund social programs, infrastructure, worker protections, and reduce income inequality.' },
-    sideB: { title: 'Lower taxes & reduced spending', description: 'Prioritizes tax cuts, deregulation, and fiscal restraint to stimulate private growth, entrepreneurship, and individual economic freedom.' },
+    sideA: { title: 'Progressive taxation & investment', description: 'Higher taxes on corporations and the wealthy to fund social programs.' },
+    sideB: { title: 'Lower taxes & reduced spending', description: 'Tax cuts and deregulation to stimulate private growth.' },
   },
   CriminalJustice: {
     label: 'Criminal Justice',
-    sideA: { title: 'Reform-oriented', description: 'Supports reducing incarceration rates, ending mandatory minimums, police accountability measures, and addressing systemic inequities in the justice system.' },
-    sideB: { title: 'Law & order focus', description: 'Prioritizes public safety, stricter sentencing, strong law enforcement funding, and personal accountability as the foundation of a just society.' },
+    sideA: { title: 'Reform-oriented', description: 'Reduce incarceration, end mandatory minimums, and increase police accountability.' },
+    sideB: { title: 'Law & order focus', description: 'Stricter sentencing and strong law enforcement for public safety.' },
   },
 }
 
@@ -271,7 +271,7 @@ export default function Results() {
                       </div>
                     </div>
                     <ScoreBar score={official.score} />
-                    <p className="text-sm text-gray-500 leading-relaxed">{official.rationale?.split(/(?<=[.!?])\s+/).slice(0, 3).join(' ')}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{official.rationale?.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')}</p>
                   </div>
                   {i < officials.length - 1 && <div className="border-t border-gray-100" />}
                 </div>
