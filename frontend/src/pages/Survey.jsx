@@ -14,8 +14,8 @@ const CATEGORIES = [
 
 const DEFAULT_WEIGHTS = Object.fromEntries(CATEGORIES.map(c => [c, 50]))
 
-const LABEL_LEFT = 'Strongly oppose'
-const LABEL_RIGHT = 'Strongly support'
+const LABEL_LEFT = 'Not a priority'
+const LABEL_RIGHT = 'Top priority'
 
 export default function Survey() {
   const [searchParams] = useSearchParams()
@@ -59,7 +59,7 @@ export default function Survey() {
             </h1>
             <p className="text-gray-500 text-lg leading-relaxed">
               {mode === 'sliders'
-                ? 'Drag each slider to reflect how strongly you support or oppose each policy area.'
+                ? 'Drag each slider to reflect how important each policy area is to you.'
                 : 'Write freely — Claude will extract your priorities from what you share.'}
             </p>
           </div>
@@ -80,8 +80,8 @@ export default function Survey() {
                     <span
                       className="text-sm font-semibold px-2.5 py-0.5 rounded-full"
                       style={{
-                        background: weights[category] >= 50 ? '#1a274415' : '#9b233515',
-                        color: weights[category] >= 50 ? '#1a2744' : '#9b2335',
+                        background: weights[category] >= 50 ? '#1a274415' : '#f3f4f6',
+                        color: weights[category] >= 50 ? '#1a2744' : '#6b7280',
                       }}
                     >
                       {weights[category]}

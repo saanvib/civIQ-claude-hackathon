@@ -45,7 +45,7 @@ Rules:
 - Use plain language a non-expert can understand. Avoid jargon.
 - Do not mention the alignment percentage number — let the explanation stand on its own.`
 
-const CLARIFY_PROMPT = `You are a non-partisan policy analyst helping clarify a user's political priorities.
+const CLARIFY_PROMPT_TEXT = `You are a non-partisan policy analyst helping clarify a user's political priorities.
 
 You receive the user's current policy weights (0–100, where 50 = unspecified/neutral) and optionally prior questions you asked along with the user's answers.
 
@@ -65,6 +65,41 @@ Rules:
 - All weight values must be integers 0–100. Do not change weights for categories that were already clear unless the user's answers directly addressed them.
 - "questions" and "unclear_categories" must be parallel arrays (same length, max 2 entries).
 - No commentary. No explanation. Just the JSON object.`
+
+const CLARIFY_PROMPT_SLIDERS = `You are a non-partisan policy analyst. A user has rated how much they care about each policy topic on a 0–100 scale (0 = not a concern, 100 = top priority). These are SALIENCE scores — they do not indicate support or opposition.
+
+You receive:
+1. Salience weights: how much the user cares about each category (0 = don't care, 100 = care deeply)
+2. Optionally: questions you asked previously and the user's answers.
+
+FIRST CALL (no prior Q&A provided):
+- Identify categories where weight ≥ 60 — the user cares about these.
+- Return the salience weights unchanged in "weights".
+- Generate up to 2 concise, non-partisan questions asking about the user's specific POLICY POSITION on those high-priority categories (e.g. "On healthcare, do you favor expanding government programs like Medicare, or do you prefer private market-based solutions?").
+- List those categories in "unclear_categories".
+- If no categories have weight ≥ 60, return empty arrays.
+
+FOLLOW-UP CALL (prior Q&A is provided):
+- Based on the user's answers, convert salience into STANCE weights for each category they answered about:
+  - 70–100: user supports progressive / expansive policy in this area
+  - 30–70: user has mixed or moderate views
+  - 0–30: user prefers conservative / limited government policy in this area
+- For categories with original salience < 60, set weight to exactly 50 (excluded from scoring).
+- If all high-priority categories now have clear stances, return empty arrays for "questions" and "unclear_categories".
+- If any remain unclear, ask up to 2 more follow-up questions.
+
+Return ONLY valid JSON in exactly this shape:
+{
+  "weights": { "Climate": n, "Healthcare": n, "Economy": n, "CriminalJustice": n },
+  "questions": ["...", "..."],
+  "unclear_categories": ["...", "..."]
+}
+
+Rules:
+- Weight values must be integers 0–100.
+- "questions" and "unclear_categories" must be parallel arrays (same length, max 2 entries).
+- Questions must be plain English, non-leading, and ask about concrete policy preferences — not party affiliation.
+- No commentary. No markdown. Just the JSON object.`
 
 export async function extractWeights(text) {
   const msg = await getClient().messages.create({
@@ -91,7 +126,8 @@ export async function extractWeights(text) {
   return weights
 }
 
-export async function clarifyWeights(weights, questions = [], answers = []) {
+export async function clarifyWeights(weights, questions = [], answers = [], mode = 'sliders') {
+  const CLARIFY_PROMPT = mode === 'text' ? CLARIFY_PROMPT_TEXT : CLARIFY_PROMPT_SLIDERS
   const qaContext = questions.length
     ? questions.map((q, i) => `Q: ${q}\nA: ${answers[i] ?? '(no answer)'}`).join('\n')
     : ''

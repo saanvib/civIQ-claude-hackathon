@@ -5,6 +5,14 @@ import { ChevronRight, AlertTriangle } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
+const CARE_THRESHOLD = 50
+
+function computeMatch(bill, weights) {
+  const w = weights[bill.category] ?? 50
+  return bill.direction === 'pro' ? Math.round(w) : Math.round(100 - w)
+}
+
 const MOCK_OFFICIALS = [
   { name: "Jane Smith", party: "D", score: 87, rationale: "Strong alignment on climate and healthcare. Minor gap on immigration." },
   { name: "Maria Chen", party: "D", score: 74, rationale: "Close match on housing and labor. Some divergence on criminal justice." },
@@ -281,7 +289,7 @@ function PollCard({ poll }) {
 export default function Results() {
   const navigate = useNavigate()
   const [officials, setOfficials] = useState(MOCK_OFFICIALS)
-  const [bills, setBills] = useState(MOCK_BILLS)
+  const [bills, setBills] = useState([])
   const [gaps, setGaps] = useState(MOCK_GAPS)
 
   useEffect(() => {
@@ -310,14 +318,30 @@ export default function Results() {
       })
       .catch(() => {})
 
-    fetch(`${API}/api/bills`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weights, limit: 6 }),
+    const topCategories = CATEGORIES.filter(c => (weights[c] ?? 50) >= CARE_THRESHOLD)
+    const cats = topCategories.length > 0 ? topCategories : CATEGORIES
+    Promise.all(
+      cats.map(cat =>
+        fetch(`${API}/api/bills?category=${cat}&limit=5`)
+          .then(r => r.json())
+          .then(data => data.bills ?? [])
+          .catch(() => [])
+      )
+    ).then(results => {
+      const scored = results
+        .flat()
+        .map(bill => ({
+          ...bill,
+          match: computeMatch(bill, weights),
+          name: bill.title,
+          summary: bill.latest_action || 'No summary available.',
+          url: bill.congress_url || 'https://congress.gov',
+          votes: [],
+        }))
+        .sort((a, b) => b.match - a.match)
+        .slice(0, 6)
+      if (scored.length > 0) setBills(scored)
     })
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data) && data.length > 0) setBills(data) })
-      .catch(() => {})
   }, [])
 
   return (
@@ -371,8 +395,11 @@ export default function Results() {
 
           {/* Bills + polls interleaved */}
           <Section title="Matching bills & polls">
+            {bills.length === 0 && (
+              <p className="p-5 text-sm text-gray-400">Loading bills…</p>
+            )}
             {bills.map((bill, i) => (
-              <div key={bill.id}>
+              <div key={bill.bill_id ?? bill.id}>
                 <BillCard bill={bill} />
                 {MOCK_POLLS[i] && <PollCard poll={MOCK_POLLS[i]} />}
                 {i < bills.length - 1 && <div className="border-t border-gray-100" />}

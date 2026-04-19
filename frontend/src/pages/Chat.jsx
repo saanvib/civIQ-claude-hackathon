@@ -16,12 +16,14 @@ export default function Chat() {
   const askedQuestions = useRef([])  // questions already shown
   const collectedAnswers = useRef([]) // answers in order
   const latestWeights = useRef(null)
+  const modeRef = useRef('sliders')
 
   useEffect(() => {
     async function init() {
       // Step 1: extract weights from survey payload
       const raw = sessionStorage.getItem('surveyPayload')
       const mode = sessionStorage.getItem('mode') || 'sliders'
+      modeRef.current = mode
       let weights = null
 
       if (raw) {
@@ -57,7 +59,7 @@ export default function Chat() {
         const r = await fetch(`${API}/api/clarify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weights }),
+          body: JSON.stringify({ weights, mode }),
         })
         const data = await r.json()
 
@@ -115,6 +117,7 @@ export default function Chat() {
           weights: latestWeights.current,
           questions: askedQuestions.current,
           answers: collectedAnswers.current,
+          mode: modeRef.current,
         }),
       })
       const data = await r.json()

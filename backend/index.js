@@ -101,14 +101,14 @@ app.post('/api/extract', async (req, res) => {
 // Body: { weights, questions?: string[], answers?: string[] }
 // Response: { weights, questions, unclear_categories }
 app.post('/api/clarify', async (req, res) => {
-  const { weights, questions, answers } = req.body ?? {}
+  const { weights, questions, answers, mode = 'sliders' } = req.body ?? {}
 
   if (!weights) {
     return res.status(400).json({ error: 'weights is required.' })
   }
 
   try {
-    const result = await clarifyWeights(weights, questions ?? [], answers ?? [])
+    const result = await clarifyWeights(weights, questions ?? [], answers ?? [], mode)
     res.json(result)
   } catch (err) {
     console.error('Claude clarify error:', err)
