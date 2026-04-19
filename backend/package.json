@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "seed:senate": "node seed_legislators.js senate 20",
-    "seed:house": "node seed_legislators.js house 20"
+    "seed:house": "node seed_legislators.js house 20",
+    "seed:bills": "node seed_bills.js"
   },
   "keywords": [],
   "author": "",

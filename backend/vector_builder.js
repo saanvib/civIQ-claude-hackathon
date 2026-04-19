@@ -1,5 +1,4 @@
 /**
- * STEP 4 — Vote vector builder.
  *
  * Turns raw Congress.gov data (votes + sponsored bills) into a clean
  * 4-dimensional vector the scoring team can compare against user preferences.

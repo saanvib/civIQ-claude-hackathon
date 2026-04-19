@@ -211,6 +211,31 @@ app.get('/api/legislators/:id', async (req, res) => {
 })
 
 /**
+ * GET /api/bills?category=Climate&direction=pro&limit=10
+ * Returns cached bills filtered by category and/or direction.
+ * Seed first with: npm run seed:bills
+ */
+app.get('/api/bills', async (req, res) => {
+  const { category, direction, limit } = req.query
+  try {
+    const { getSupabase } = await import('./supabase_client.js')
+    const sb = getSupabase()
+    let query = sb.from('bills').select('*').order('introduced_date', { ascending: false })
+
+    if (category) query = query.eq('category', category)
+    if (direction) query = query.eq('direction', direction)
+    if (limit)     query = query.limit(parseInt(limit, 10))
+
+    const { data, error } = await query
+    if (error) throw new Error(error.message)
+    res.json({ count: data.length, bills: data })
+  } catch (err) {
+    console.error('/api/bills error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
  * GET /api/health
  * Quick check that the server is up and env vars are loaded.
  */
