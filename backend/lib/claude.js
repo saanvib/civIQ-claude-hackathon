@@ -30,6 +30,27 @@ const SCORING_PROMPT = `You are a non-partisan political analyst explaining alig
 
 Write 2–3 sentences explaining where this legislator's record aligns with and diverges from the user's stated priorities. Be factual and neutral. Reference specific policy areas by name. Do not tell the user how to vote or make any endorsements. Do not use party affiliation as a proxy — speak only to the voting/sponsorship record provided.`
 
+const CLARIFY_PROMPT = `You are a non-partisan policy analyst helping clarify a user's political priorities.
+
+You receive the user's current policy weights (0–100, where 50 = unspecified/neutral) and optionally prior questions you asked along with the user's answers.
+
+Your tasks:
+1. If prior Q&A pairs are provided, adjust the weights for those categories based on what the user said.
+2. Identify any categories still in the 40–60 range (unclear/neutral). Generate up to 2 concise, non-partisan follow-up questions targeting those unclear categories. Questions must be plain-language, not leading, and ask about concrete policy preferences (not party affiliation).
+3. If all categories are clear (outside 40–60), return empty arrays for questions and unclear_categories.
+
+Return ONLY valid JSON in exactly this shape:
+{
+  "weights": { "Climate": n, "Healthcare": n, "Economy": n, "CriminalJustice": n },
+  "questions": ["...", "..."],
+  "unclear_categories": ["...", "..."]
+}
+
+Rules:
+- All weight values must be integers 0–100. Do not change weights for categories that were already clear unless the user's answers directly addressed them.
+- "questions" and "unclear_categories" must be parallel arrays (same length, max 2 entries).
+- No commentary. No explanation. Just the JSON object.`
+
 export async function extractWeights(text) {
   const msg = await getClient().messages.create({
     model: MODEL,
@@ -53,6 +74,45 @@ export async function extractWeights(text) {
     weights[cat] = isNaN(val) ? 50 : Math.max(0, Math.min(100, val))
   }
   return weights
+}
+
+export async function clarifyWeights(weights, questions = [], answers = []) {
+  const qaContext = questions.length
+    ? questions.map((q, i) => `Q: ${q}\nA: ${answers[i] ?? '(no answer)'}`).join('\n')
+    : ''
+
+  const userMessage = [
+    `Current weights: ${JSON.stringify(weights)}`,
+    qaContext && `Prior Q&A:\n${qaContext}`,
+  ].filter(Boolean).join('\n\n')
+
+  const msg = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 512,
+    system: CLARIFY_PROMPT,
+    messages: [{ role: 'user', content: userMessage }],
+  })
+
+  const rawText = msg.content[0]?.text?.trim() ?? '{}'
+  const raw = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return { weights, questions: [], unclear_categories: [], warning: 'Clarification failed, using existing weights.' }
+  }
+
+  const refined = {}
+  for (const cat of CATEGORIES) {
+    const val = Number(parsed.weights?.[cat])
+    refined[cat] = isNaN(val) ? (weights[cat] ?? 50) : Math.max(0, Math.min(100, val))
+  }
+
+  return {
+    weights: refined,
+    questions: Array.isArray(parsed.questions) ? parsed.questions : [],
+    unclear_categories: Array.isArray(parsed.unclear_categories) ? parsed.unclear_categories : [],
+  }
 }
 
 export async function explainAlignment(userWeights, legislator, score) {

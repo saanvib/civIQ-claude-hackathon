@@ -1,7 +1,7 @@
 /**
  * STEP 1 — Policy categories.
  *
- * Maps ProPublica subject tags → one of our 4 locked categories.
+ * Maps Congress.gov subject tags → one of our 4 locked categories.
  * Also does keyword fallback on bill titles when subjects are missing.
  *
  * Four categories (locked with scoring team):
@@ -10,7 +10,7 @@
 
 export const CATEGORIES = ["Climate", "Healthcare", "Economy", "CriminalJustice"];
 
-// ProPublica API returns bills tagged with subject strings.
+// Congress.gov API returns bills tagged with subject strings.
 // We map those strings to our 4 categories.
 export const SUBJECT_TO_CATEGORY = {
   // ── Climate ──────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ export const SUBJECT_TO_CATEGORY = {
   "Water Resources Development":           "Climate",
   "Animals":                               "Climate",
   "Science, Technology, Communications":   "Climate",
-  // ProPublica / legacy subject strings
+  // Legacy subject strings
   "Environmental protection":              "Climate",
   "Climate change and greenhouse gases":   "Climate",
   "Renewable energy sources":              "Climate",
@@ -42,7 +42,7 @@ export const SUBJECT_TO_CATEGORY = {
   // Congress.gov
   "Health":                                "Healthcare",
   "Families":                              "Healthcare",
-  // ProPublica / legacy
+  // Legacy subject strings
   "Health care coverage and access":       "Healthcare",
   "Medicare":                              "Healthcare",
   "Medicaid":                              "Healthcare",
@@ -68,7 +68,7 @@ export const SUBJECT_TO_CATEGORY = {
   "International Trade and Finance":       "Economy",
   "Housing and Community Development":     "Economy",
   "Social Welfare":                        "Economy",
-  // ProPublica / legacy
+  // Legacy subject strings
   "Budget, appropriations, and fiscal policy": "Economy",
   "Trade policy":                          "Economy",
   "Tariffs":                               "Economy",
@@ -90,7 +90,7 @@ export const SUBJECT_TO_CATEGORY = {
   "Civil Liberties, Civil Rights, Minorities": "CriminalJustice",
   "Immigration":                           "CriminalJustice",
   "Law":                                   "CriminalJustice",
-  // ProPublica / legacy
+  // Legacy subject strings
   "Crime and law enforcement":             "CriminalJustice",
   "Criminal procedure and sentencing":     "CriminalJustice",
   "Detention of persons":                  "CriminalJustice",

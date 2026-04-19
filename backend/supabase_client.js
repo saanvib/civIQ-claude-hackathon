@@ -1,9 +1,9 @@
 /**
  * STEP 3 — Supabase client singleton.
  *
- * Supabase is our cache layer. Instead of hitting ProPublica on every
- * user request (slow + rate-limited), we seed legislators once and
- * serve them from Supabase in milliseconds.
+ * Supabase is our cache layer. We seed legislators once and serve them
+ * from Supabase in milliseconds instead of hitting the Congress.gov API
+ * on every user request.
  *
  * Get your free project at https://supabase.com
  * Then add to .env:

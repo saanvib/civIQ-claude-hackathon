@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import express from 'express'
 import cors from 'cors'
-import { extractWeights, explainAlignment } from './lib/claude.js'
+import { extractWeights, explainAlignment, clarifyWeights } from './lib/claude.js'
 import { getAllLegislators, getLegislatorVector } from './vector_builder.js'
 
 const app = express()
@@ -74,6 +74,25 @@ app.post('/api/extract', async (req, res) => {
     // Graceful fallback — return neutral weights so the app doesn't crash
     const fallback = Object.fromEntries(CATEGORIES.map(c => [c, 50]))
     res.json({ weights: fallback, warning: 'Extraction failed, using neutral weights.' })
+  }
+})
+
+// POST /api/clarify
+// Body: { weights, questions?: string[], answers?: string[] }
+// Response: { weights, questions, unclear_categories }
+app.post('/api/clarify', async (req, res) => {
+  const { weights, questions, answers } = req.body ?? {}
+
+  if (!weights) {
+    return res.status(400).json({ error: 'weights is required.' })
+  }
+
+  try {
+    const result = await clarifyWeights(weights, questions ?? [], answers ?? [])
+    res.json(result)
+  } catch (err) {
+    console.error('Claude clarify error:', err)
+    res.json({ weights, questions: [], unclear_categories: [], warning: 'Clarification failed, using existing weights.' })
   }
 })
 

@@ -3,7 +3,7 @@
  *
  * Docs: https://api.congress.gov/
  * Free key: https://api.congress.gov/sign-up/ (instant, no approval needed)
- * Rate limit: 5,000 req/hour — far more generous than ProPublica.
+ * Rate limit: 5,000 req/hour.
  *
  * Exports the SAME three function signatures that the rest of the data
  * layer expects, so vector_builder + seed_legislators need no changes:

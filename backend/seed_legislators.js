@@ -96,8 +96,8 @@ async function seedLegislators(chamber = "senate", limit = 20) {
   console.log(`║  Seeding ${String(limit).padEnd(3)} ${chamber.padEnd(6)} members into Supabase  ║`);
   console.log(`╚══════════════════════════════════════════════╝\n`);
 
-  // 1. Fetch full member list from ProPublica
-  console.log("Fetching member list from ProPublica...");
+  // 1. Fetch full member list from Congress.gov
+  console.log("Fetching member list from Congress.gov...");
   const allMembers = await fetchCurrentMembers(chamber);
   const members = allMembers.slice(0, limit);
   console.log(`Got ${allMembers.length} members. Processing first ${members.length}.\n`);

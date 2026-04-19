@@ -1,7 +1,7 @@
 /**
  * STEP 4 — Vote vector builder.
  *
- * Turns raw ProPublica data (votes + sponsored bills) into a clean
+ * Turns raw Congress.gov data (votes + sponsored bills) into a clean
  * 4-dimensional vector the scoring team can compare against user preferences.
  *
  * LOCKED output shape (do not rename keys — scoring team depends on this):
