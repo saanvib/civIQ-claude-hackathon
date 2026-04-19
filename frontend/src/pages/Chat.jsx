@@ -62,7 +62,7 @@ export default function Chat() {
       // Fall back to previously extracted weights
       if (!weights) {
         const stored = sessionStorage.getItem('extractedWeights')
-        weights = stored ? JSON.parse(stored) : { Climate: 50, Healthcare: 50, Economy: 50, CriminalJustice: 50 }
+        weights = stored ? JSON.parse(stored) : { Climate: 50, Healthcare: 50, Economy: 50, 'Criminal Justice': 50 }
       }
 
       latestWeights.current = weights

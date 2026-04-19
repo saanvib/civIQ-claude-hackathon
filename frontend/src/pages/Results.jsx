@@ -19,7 +19,7 @@ const BOTH_SIDES = {
     sideA: { title: 'Progressive taxation & investment', description: 'Higher taxes on corporations and the wealthy to fund social programs.' },
     sideB: { title: 'Lower taxes & reduced spending', description: 'Tax cuts and deregulation to stimulate private growth.' },
   },
-  CriminalJustice: {
+  'Criminal Justice': {
     label: 'Criminal Justice',
     sideA: { title: 'Reform-oriented', description: 'Reduce incarceration, end mandatory minimums, and increase police accountability.' },
     sideB: { title: 'Law & order focus', description: 'Stricter sentencing and strong law enforcement for public safety.' },
@@ -27,7 +27,7 @@ const BOTH_SIDES = {
 }
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
+const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'Criminal Justice']
 
 function ScoreBar({ score }) {
   const color = score >= 75 ? '#1a2744' : score >= 55 ? '#4a6fa5' : '#9b2335'

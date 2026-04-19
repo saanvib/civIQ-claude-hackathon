@@ -60,12 +60,14 @@ const MOCK_LEGISLATORS = [
 ]
 
 function cosineSim(userWeights, voteVector) {
+  // user weights: 0–100; vote vectors may be 0–1 (Supabase) or 0–100 (mock)
   const u = CATEGORIES.map(c => (userWeights[c] ?? 50) / 100)
-  const v = CATEGORIES.map(c => (voteVector[c] ?? 50) / 100)
-  const dot = u.reduce((s, ui, i) => s + ui * v[i], 0)
-  const nu = Math.sqrt(u.reduce((s, ui) => s + ui * ui, 0))
-  const nv = Math.sqrt(v.reduce((s, vi) => s + vi * vi, 0))
-  return (nu && nv) ? Math.round((dot / (nu * nv)) * 100) : 50
+  const v = CATEGORIES.map(c => {
+    const val = voteVector[c] ?? 0.5
+    return val <= 1.0 ? val : val / 100
+  })
+  const avgDiff = u.reduce((s, ui, i) => s + Math.abs(ui - v[i]), 0) / CATEGORIES.length
+  return Math.round((1 - avgDiff) * 100)
 }
 
 // POST /api/extract
@@ -221,28 +223,37 @@ app.post('/api/bills', async (req, res) => {
 
   try {
     const sb = getSupabase()
-    const { data, error } = await sb
-      .from('bills')
-      .select('*')
-      .order('updated_at', { ascending: false })
-      .limit(250)
 
-    if (error) throw error
+    // Fetch up to 15 bills per category so scores spread across all 4 dimensions
+    const perCategory = await Promise.all(
+      CATEGORIES.map(cat =>
+        sb.from('bills').select('*').eq('category', cat).order('updated_at', { ascending: false }).limit(15)
+      )
+    )
 
-    const bills = (data ?? [])
-      .map(bill => {
-        const w = weights[bill.category] ?? 50
-        const match = bill.direction === 'pro' ? w : 100 - w
-        return {
-          id: bill.bill_id,
-          name: bill.title,
-          summary: bill.latest_action || bill.policy_area || '',
-          match: Math.round(match),
-          category: bill.category,
-          url: bill.congress_url,
-          votes: [],
-        }
-      })
+    // Score and pick top 2 per category, then sort overall — ensures variety
+    const perCategoryBills = perCategory.map((r, idx) => {
+      const cat = CATEGORIES[idx]
+      return (r.data ?? [])
+        .map(bill => {
+          const w = weights[bill.category ?? cat] ?? 50
+          const match = bill.direction === 'pro' ? w : 100 - w
+          return {
+            id: bill.bill_id,
+            name: bill.title,
+            summary: bill.latest_action || bill.policy_area || '',
+            match: Math.round(match),
+            category: bill.category ?? cat,
+            url: bill.congress_url,
+            votes: [],
+          }
+        })
+        .sort((a, b) => b.match - a.match)
+        .slice(0, 2)
+    })
+
+    const bills = perCategoryBills
+      .flat()
       .sort((a, b) => b.match - a.match)
       .slice(0, limit)
 

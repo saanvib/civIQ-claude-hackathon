@@ -93,7 +93,7 @@ export default function Survey() {
                     step={1}
                     value={[weights[category]]}
                     onValueChange={val => handleSliderChange(category, val)}
-                    className="h-3 **:[[role=slider]]:h-5 **:[[role=slider]]:w-5 **:[[role=slider]]:bg-[#1a2744] **:[[role=slider]]:border-[#1a2744]"
+                    className="h-3 **:[[role=slider]]:h-5 **:[[role=slider]]:w-5 **:[[role=slider]]:bg-[#1a2744] **:[[role=slider]]:border-[#1a2744] **:[[role=slider]]:cursor-pointer"
                   />
                 </div>
               ))}
