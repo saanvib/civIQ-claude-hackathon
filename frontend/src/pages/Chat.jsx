@@ -93,12 +93,15 @@ export default function Chat() {
     setMessages(prev => [...prev, { role: 'user', text: answer }])
     collectedAnswers.current = [...collectedAnswers.current, answer]
 
-    // If there are queued questions, show the next one without an API call
+    // If there are queued questions, show the next one after a short typing delay
     if (questionQueue.current.length > 0) {
       const [next, ...rest] = questionQueue.current
       askedQuestions.current = [...askedQuestions.current, next]
       questionQueue.current = rest
+      setLoading(true)
+      await new Promise(r => setTimeout(r, 900))
       setMessages(prev => [...prev, { role: 'claude', text: next }])
+      setLoading(false)
       return
     }
 
