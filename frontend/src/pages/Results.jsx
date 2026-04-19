@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { ChevronRight, AlertTriangle } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 
 const MOCK_OFFICIALS = [
   { name: "Jane Smith", party: "D", score: 87, rationale: "Strong alignment on climate and healthcare. Minor gap on immigration." },
-  { name: "Bob Lee", party: "R", score: 61, rationale: "Aligned on economy but diverges on healthcare and climate." },
   { name: "Maria Chen", party: "D", score: 74, rationale: "Close match on housing and labor. Some divergence on criminal justice." },
+  { name: "Bob Lee", party: "R", score: 61, rationale: "Aligned on economy but diverges on healthcare and climate." },
 ]
 
 const MOCK_BILLS = [
@@ -57,7 +55,7 @@ const MOCK_BILLS = [
 
 const MOCK_GAPS = [
   { category: "Immigration", note: "Your top matches diverge significantly on this issue" },
-  { category: "CriminalJustice", note: "Limited voting history available for comparison" },
+  { category: "Criminal Justice", note: "Limited voting history available for comparison" },
 ]
 
 const MOCK_POLLS = [
@@ -82,31 +80,50 @@ const MOCK_POLLS = [
 ]
 
 function ScoreBar({ score }) {
+  const color = score >= 75 ? '#1a2744' : score >= 55 ? '#4a6fa5' : '#9b2335'
   return (
-    <div className="w-full bg-muted rounded-full h-2">
+    <div className="w-full bg-gray-100 rounded-full h-1.5">
       <div
-        className="bg-primary h-2 rounded-full transition-all"
-        style={{ width: `${score}%` }}
+        className="h-1.5 rounded-full transition-all"
+        style={{ width: `${score}%`, background: color }}
       />
     </div>
   )
 }
 
-function PartyBadge({ party }) {
+function PartyPill({ party }) {
+  const isD = party === 'D'
   return (
-    <Badge variant={party === 'D' ? 'default' : 'secondary'}>{party}</Badge>
+    <span
+      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+      style={{
+        background: isD ? '#1a274415' : '#9b233515',
+        color: isD ? '#1a2744' : '#9b2335',
+      }}
+    >
+      {isD ? 'Dem' : party === 'R' ? 'Rep' : party}
+    </span>
   )
 }
 
 function VoteChip({ vote }) {
   return (
     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-      vote === 'Yes'
-        ? 'bg-green-100 text-green-800'
-        : 'bg-red-100 text-red-800'
+      vote === 'Yes' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
     }`}>
       {vote}
     </span>
+  )
+}
+
+function Section({ title, children }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400">{title}</h2>
+      <div className="border border-gray-100 rounded-2xl overflow-hidden">
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -114,31 +131,34 @@ function BillCard({ bill }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-3 p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1.5 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm">{bill.name}</span>
-            <Badge variant="outline">{bill.category}</Badge>
+            <span className="font-semibold text-[#1a2744]">{bill.name}</span>
+            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{bill.category}</span>
           </div>
-          <p className="text-sm text-muted-foreground">{bill.summary}</p>
+          <p className="text-sm text-gray-500 leading-relaxed">{bill.summary}</p>
         </div>
-        <span className="text-sm font-semibold shrink-0">{bill.match}%</span>
+        <div className="text-right shrink-0">
+          <span className="text-lg font-bold text-[#1a2744]">{bill.match}%</span>
+          <p className="text-xs text-gray-400">match</p>
+        </div>
       </div>
 
       <ScoreBar score={bill.match} />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4 pt-1">
         <a
           href={bill.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-primary underline underline-offset-2"
+          className="text-xs font-medium text-[#1a2744] underline underline-offset-2 hover:opacity-70"
         >
           Read full bill
         </a>
         <button
-          className="text-xs text-muted-foreground underline underline-offset-2"
+          className="text-xs font-medium text-gray-400 hover:text-gray-600 underline underline-offset-2"
           onClick={() => setExpanded(p => !p)}
         >
           {expanded ? 'Hide votes' : 'See legislator votes'}
@@ -146,12 +166,12 @@ function BillCard({ bill }) {
       </div>
 
       {expanded && (
-        <div className="flex flex-col gap-2 pl-2 border-l border-border">
+        <div className="flex flex-col gap-2 mt-1 pl-3 border-l-2 border-gray-100">
           {bill.votes.map((v, i) => (
             <div key={i} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <span>{v.name}</span>
-                <PartyBadge party={v.party} />
+                <span className="text-[#1a2744] font-medium">{v.name}</span>
+                <PartyPill party={v.party} />
               </div>
               <VoteChip vote={v.vote} />
             </div>
@@ -179,26 +199,24 @@ function PollCard({ poll }) {
     setRanking(newRanking)
   }
 
+  const optionClasses = (opt) =>
+    `px-4 py-1.5 rounded-full text-sm border-2 font-medium transition-colors ${
+      answer === opt
+        ? 'bg-[#1a2744] text-white border-[#1a2744]'
+        : 'border-gray-200 text-[#1a2744] hover:border-[#1a2744]/40'
+    }`
+
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium">{poll.question}</p>
+    <div className="flex flex-col gap-3 bg-gray-50 rounded-xl p-4 mx-5 mb-5">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Community poll</p>
+      <p className="text-sm font-medium text-[#1a2744] leading-snug">{poll.question}</p>
 
       {!submitted ? (
         <>
           {poll.type === 'yesno' && (
             <div className="flex gap-2">
               {['Yes', 'No'].map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => setAnswer(opt)}
-                  className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                    answer === opt
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-foreground hover:bg-muted'
-                  }`}
-                >
-                  {opt}
-                </button>
+                <button key={opt} onClick={() => setAnswer(opt)} className={optionClasses(opt)}>{opt}</button>
               ))}
             </div>
           )}
@@ -206,63 +224,49 @@ function PollCard({ poll }) {
           {poll.type === 'agree' && (
             <div className="flex gap-2 flex-wrap">
               {['Agree', 'Neutral', 'Disagree'].map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => setAnswer(opt)}
-                  className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                    answer === opt
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-foreground hover:bg-muted'
-                  }`}
-                >
-                  {opt}
-                </button>
+                <button key={opt} onClick={() => setAnswer(opt)} className={optionClasses(opt)}>{opt}</button>
               ))}
             </div>
           )}
 
           {poll.type === 'rank' && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {ranking.map((item, i) => (
                 <div key={item} className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground w-4">{i + 1}.</span>
-                  <span className="flex-1 bg-muted rounded px-3 py-1">{item}</span>
-                  <div className="flex gap-1">
-                    <button onClick={() => moveItem(i, -1)} className="text-muted-foreground hover:text-foreground px-1">↑</button>
-                    <button onClick={() => moveItem(i, 1)} className="text-muted-foreground hover:text-foreground px-1">↓</button>
+                  <span className="text-gray-400 w-4 font-medium">{i + 1}.</span>
+                  <span className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[#1a2744] font-medium">{item}</span>
+                  <div className="flex gap-0.5">
+                    <button onClick={() => moveItem(i, -1)} className="text-gray-400 hover:text-[#1a2744] px-1.5 py-0.5 rounded">↑</button>
+                    <button onClick={() => moveItem(i, 1)} className="text-gray-400 hover:text-[#1a2744] px-1.5 py-0.5 rounded">↓</button>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <Button
-            size="sm"
-            variant="outline"
+          <button
             onClick={handleSubmit}
             disabled={poll.type !== 'rank' && !answer}
-            className="self-start"
+            className="self-start text-xs font-semibold px-4 py-1.5 rounded-full bg-[#1a2744] text-white hover:bg-[#243460] disabled:opacity-30 transition-colors"
           >
             Submit
-          </Button>
+          </button>
         </>
       ) : (
         <div className="flex flex-col gap-2">
           {poll.type === 'rank' ? (
-            <p className="text-sm text-muted-foreground">
-              Your ranking: {ranking.join(' → ')}
-            </p>
+            <p className="text-sm text-gray-500">Your ranking: <span className="font-medium text-[#1a2744]">{ranking.join(' → ')}</span></p>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">You voted: <span className="font-medium text-foreground">{answer}</span></p>
-              <div className="flex flex-col gap-1">
+              <p className="text-sm text-gray-500">You voted: <span className="font-semibold text-[#1a2744]">{answer}</span></p>
+              <div className="flex flex-col gap-1.5">
                 {Object.entries(poll.results).map(([opt, pct]) => (
                   <div key={opt} className="flex items-center gap-2 text-sm">
-                    <span className="w-20 text-muted-foreground">{opt}</span>
-                    <div className="flex-1 bg-muted rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: `${pct}%` }} />
+                    <span className="w-20 text-gray-500">{opt}</span>
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-[#1a2744] h-1.5 rounded-full" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="text-muted-foreground w-8 text-right">{pct}%</span>
+                    <span className="text-gray-400 w-8 text-right text-xs">{pct}%</span>
                   </div>
                 ))}
               </div>
@@ -293,83 +297,99 @@ export default function Results() {
   }, [])
 
   return (
-    <div className="min-h-screen px-4 py-12 flex flex-col items-center">
-      <div className="w-full max-w-2xl flex flex-col gap-8">
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Nav */}
+      <header className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
+        <span
+          className="text-[#1a2744] font-semibold font-serif text-lg tracking-tight cursor-pointer"
+          onClick={() => navigate('/')}
+        >
+          CivIQ
+        </span>
+      </header>
 
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Your alignment results</h2>
-          <p className="text-muted-foreground mt-1">Based on your stated priorities — not an endorsement</p>
-        </div>
+      {/* Content */}
+      <main className="flex-1 flex flex-col items-center px-6 pt-12 pb-24">
+        <div className="w-full max-w-2xl flex flex-col gap-10">
 
-        {/* Top officials */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top aligned officials</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          {/* Heading */}
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#1a2744] leading-[1.1] mb-3">
+              Your alignment results
+            </h1>
+            <p className="text-gray-500 text-lg leading-relaxed">
+              Based on your stated priorities — not an endorsement.
+            </p>
+          </div>
+
+          {/* Top officials */}
+          <Section title="Top aligned officials">
             {officials.map((official, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{official.name}</span>
-                    <PartyBadge party={official.party} />
+              <div key={i}>
+                <div className="flex flex-col gap-3 p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[#1a2744]">{official.name}</span>
+                      <PartyPill party={official.party} />
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-[#1a2744]">{official.score}%</span>
+                      <p className="text-xs text-gray-400">match</p>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold">{official.score}%</span>
+                  <ScoreBar score={official.score} />
+                  <p className="text-sm text-gray-500 leading-relaxed">{official.rationale}</p>
                 </div>
-                <ScoreBar score={official.score} />
-                <p className="text-sm text-muted-foreground">{official.rationale}</p>
-                {i < officials.length - 1 && <Separator />}
+                {i < officials.length - 1 && <div className="border-t border-gray-100" />}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </Section>
 
-        {/* Bills + polls interleaved */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Matching bills & polls</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
+          {/* Bills + polls interleaved */}
+          <Section title="Matching bills & polls">
             {MOCK_BILLS.map((bill, i) => (
-              <div key={bill.id} className="flex flex-col gap-6">
+              <div key={bill.id}>
                 <BillCard bill={bill} />
-                {MOCK_POLLS[i] && (
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Community poll</p>
-                    <PollCard poll={MOCK_POLLS[i]} />
-                  </div>
-                )}
-                {i < MOCK_BILLS.length - 1 && <Separator />}
+                {MOCK_POLLS[i] && <PollCard poll={MOCK_POLLS[i]} />}
+                {i < MOCK_BILLS.length - 1 && <div className="border-t border-gray-100" />}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </Section>
 
-        {/* Weak match alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Where alignment breaks down</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          {/* Weak match alerts */}
+          <Section title="Where alignment breaks down">
             {MOCK_GAPS.map((gap, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                <span className="text-sm font-medium">{gap.category}</span>
-                <p className="text-sm text-muted-foreground">{gap.note}</p>
-                {i < MOCK_GAPS.length - 1 && <Separator />}
+              <div key={i}>
+                <div className="flex items-start gap-3 p-5">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: '#9b2335' }} />
+                  <div>
+                    <span className="font-semibold text-[#1a2744] text-sm">{gap.category}</span>
+                    <p className="text-sm text-gray-500 mt-0.5">{gap.note}</p>
+                  </div>
+                </div>
+                {i < MOCK_GAPS.length - 1 && <div className="border-t border-gray-100" />}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </Section>
 
-        <p className="text-xs text-muted-foreground text-center">
-          "Here's who aligns with your stated priorities" — not "Vote for X"
-        </p>
+          <p className="text-xs text-gray-400 text-center">
+            "Here's who aligns with your stated priorities" — not "Vote for X"
+          </p>
 
-        <Button variant="outline" className="cursor-pointer" onClick={() => navigate('/')}>
-          Start over
-        </Button>
+          <Button
+            size="lg"
+            className="gap-2 px-7 py-6 text-base font-semibold bg-[#1a2744] hover:bg-[#243460] text-white shadow-md cursor-pointer rounded-xl self-stretch sm:self-start"
+            onClick={() => navigate('/')}
+          >
+            Start over
+            <ChevronRight size={16} className="ml-1 opacity-60" />
+          </Button>
+        </div>
+      </main>
 
-      </div>
+      <footer className="text-center font-serif py-6 text-xs text-gray-400 border-t border-gray-100">
+        CivIQ
+      </footer>
     </div>
   )
 }
