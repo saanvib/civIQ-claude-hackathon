@@ -54,12 +54,25 @@ Your tasks:
 2. Identify any categories still in the 40–60 range (unclear/neutral). Generate up to 2 concise, non-partisan follow-up questions targeting those unclear categories. Questions must be plain-language, not leading, and ask about concrete policy preferences (not party affiliation).
 3. If all categories are clear (outside 40–60), return empty arrays for questions and unclear_categories.
 
+Each question must be a structured object — choose the format that best fits:
+- "multiple_choice": use when there are 2–4 clear, distinct policy positions to choose from
+- "open": use when nuance is needed and predefined options would oversimplify
+
 Return ONLY valid JSON in exactly this shape:
 {
   "weights": { "Climate": n, "Healthcare": n, "Economy": n, "CriminalJustice": n },
-  "questions": ["...", "..."],
-  "unclear_categories": ["...", "..."]
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "question": "...",
+      "options": ["...", "...", "..."],
+      "category": "CategoryName"
+    }
+  ],
+  "unclear_categories": ["..."]
 }
+
+For open-ended questions, use: { "type": "open", "question": "...", "category": "CategoryName" }
 
 Rules:
 - All weight values must be integers 0–100. Do not change weights for categories that were already clear unless the user's answers directly addressed them.
@@ -75,7 +88,7 @@ You receive:
 FIRST CALL (no prior Q&A provided):
 - Identify categories where weight ≥ 60 — the user cares about these.
 - Return the salience weights unchanged in "weights".
-- Generate up to 2 concise, non-partisan questions asking about the user's specific POLICY POSITION on those high-priority categories (e.g. "On healthcare, do you favor expanding government programs like Medicare, or do you prefer private market-based solutions?").
+- Generate up to 2 concise, non-partisan questions asking about the user's specific POLICY POSITION on those high-priority categories.
 - List those categories in "unclear_categories".
 - If no categories have weight ≥ 60, return empty arrays.
 
@@ -88,12 +101,27 @@ FOLLOW-UP CALL (prior Q&A is provided):
 - If all high-priority categories now have clear stances, return empty arrays for "questions" and "unclear_categories".
 - If any remain unclear, ask up to 2 more follow-up questions.
 
+Each question must be a structured object — choose the format that best fits the question:
+- "multiple_choice": use for stance questions with 2–4 clear, distinct policy positions (e.g. "Which best describes your view on healthcare?")
+- "slider": use for degree/intensity questions on a spectrum (e.g. "How much government involvement do you want?")
+- "open": use only when the question requires a nuanced answer that choices would oversimplify
+
 Return ONLY valid JSON in exactly this shape:
 {
   "weights": { "Climate": n, "Healthcare": n, "Economy": n, "CriminalJustice": n },
-  "questions": ["...", "..."],
-  "unclear_categories": ["...", "..."]
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "question": "...",
+      "options": ["...", "...", "..."],
+      "category": "CategoryName"
+    }
+  ],
+  "unclear_categories": ["..."]
 }
+
+For a slider question use: { "type": "slider", "question": "...", "min_label": "...", "max_label": "...", "category": "CategoryName" }
+For an open question use: { "type": "open", "question": "...", "category": "CategoryName" }
 
 Rules:
 - Weight values must be integers 0–100.
@@ -159,9 +187,14 @@ export async function clarifyWeights(weights, questions = [], answers = [], mode
     refined[cat] = isNaN(val) ? (weights[cat] ?? 50) : Math.max(0, Math.min(100, val))
   }
 
+  const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : []
+  const normalizedQuestions = rawQuestions.map(q =>
+    typeof q === 'string' ? { type: 'open', question: q } : q
+  )
+
   return {
     weights: refined,
-    questions: Array.isArray(parsed.questions) ? parsed.questions : [],
+    questions: normalizedQuestions,
     unclear_categories: Array.isArray(parsed.unclear_categories) ? parsed.unclear_categories : [],
   }
 }
