@@ -4,6 +4,7 @@ import express from 'express'
 import cors from 'cors'
 import { extractWeights, explainAlignment, clarifyWeights } from './lib/claude.js'
 import { getAllLegislators, getLegislatorVector } from './vector_builder.js'
+import { fetchActiveBills } from './congress_api.js'
 import { getSupabase } from './supabase_client.js'
 
 const app = express()
@@ -293,6 +294,22 @@ app.get('/api/bills', async (req, res) => {
     res.json({ count: data.length, bills: data })
   } catch (err) {
     console.error('/api/bills error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/bills/active?categories=Climate,Healthcare&limit=10
+ * Fetches bills from Congress 119 with action in the last 90 days, live from Congress.gov.
+ */
+app.get('/api/bills/active', async (req, res) => {
+  const categories = req.query.categories ? req.query.categories.split(',') : []
+  const limit = parseInt(req.query.limit ?? '20', 10)
+  try {
+    const bills = await fetchActiveBills(categories, limit)
+    res.json(bills)
+  } catch (err) {
+    console.error('/api/bills/active error:', err.message)
     res.status(500).json({ error: err.message })
   }
 })

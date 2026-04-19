@@ -167,10 +167,14 @@ export async function clarifyWeights(weights, questions = [], answers = [], mode
 }
 
 export async function explainAlignment(userWeights, legislator, score) {
+  const scaledVector = Object.fromEntries(
+    Object.entries(legislator.vote_vector ?? {}).map(([k, v]) => [k, Math.round(v * 100)])
+  )
+
   const userMessage = [
     `User priorities (0–100, higher = more progressive): ${JSON.stringify(userWeights)}`,
     `Legislator: ${legislator.name} (${legislator.party}-${legislator.state}, ${legislator.chamber})`,
-    `Voting/sponsorship pattern by category (0–100): ${JSON.stringify(legislator.vote_vector ?? {})}`,
+    `Voting/sponsorship pattern by category (0–100): ${JSON.stringify(scaledVector)}`,
     `Alignment score: ${score}%`,
   ].join('\n')
 

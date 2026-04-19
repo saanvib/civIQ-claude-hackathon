@@ -13,6 +13,8 @@
  *   fetchMemberSponsoredBills(memberId, limit)
  */
 
+import { categorizeBill } from "./policy_categories.js";
+
 const BASE    = "https://api.congress.gov/v3";
 const CONGRESS = "119"; // 119th Congress (Jan 2025 – Jan 2027)
 
@@ -62,6 +64,64 @@ export const POLICY_AREA_TO_CATEGORY = {
   "Immigration":                     "CriminalJustice",
   "Law":                             "CriminalJustice",
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 0. Active bills — fetched live, not from cache
+// ─────────────────────────────────────────────────────────────────────────────
+
+function billUrl(type, number, congress) {
+  const chamber = type?.toUpperCase() === 'S' ? 'senate' : 'house'
+  return `https://www.congress.gov/bill/${congress}th-congress/${chamber}-bill/${number}`
+}
+
+/**
+ * Fetch bills from the current Congress that have had action in the last 90 days.
+ * Filtered to our 4 locked categories via POLICY_AREA_TO_CATEGORY.
+ *
+ * @param {string[]} categories - filter to these categories (empty = all 4)
+ * @param {number}   limit      - max results to return
+ */
+export async function fetchActiveBills(categories = [], limit = 20) {
+  const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+  const url = `${BASE}/bill/${CONGRESS}?format=json&limit=250&fromDateTime=${from}&sort=updateDate+desc`
+
+  const res = await fetch(url, { headers: headers() })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Active bills fetch failed (${res.status}): ${body}`)
+  }
+
+  const data = await res.json()
+  const bills = data.bills ?? []
+
+  const categorySet = new Set(
+    categories.length > 0 ? categories : Object.values(POLICY_AREA_TO_CATEGORY)
+  )
+
+  const results = []
+  for (const bill of bills) {
+    const policyArea = bill.policyArea?.name ?? ''
+    const category =
+      POLICY_AREA_TO_CATEGORY[policyArea] ??
+      categorizeBill([policyArea], bill.title ?? '')?.category
+    if (!category || !categorySet.has(category)) continue
+
+    results.push({
+      id:                  `${bill.type}${bill.number}-${bill.congress}`,
+      title:               bill.title ?? '',
+      category,
+      policy_area:         bill.policyArea?.name ?? '',
+      latest_action:       bill.latestAction?.text ?? '',
+      latest_action_date:  bill.latestAction?.actionDate ?? '',
+      introduced_date:     bill.introducedDate ?? '',
+      url:                 billUrl(bill.type, bill.number, bill.congress),
+    })
+
+    if (results.length >= limit) break
+  }
+
+  return results
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Member list

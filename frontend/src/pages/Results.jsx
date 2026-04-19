@@ -5,14 +5,6 @@ import { ChevronRight, AlertTriangle } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
-const CARE_THRESHOLD = 50
-
-function computeMatch(bill, weights) {
-  const w = weights[bill.category] ?? 50
-  return bill.direction === 'pro' ? Math.round(w) : Math.round(100 - w)
-}
-
 const MOCK_OFFICIALS = [
   { name: "Jane Smith", party: "D", score: 87, rationale: "Strong alignment on climate and healthcare. Minor gap on immigration." },
   { name: "Maria Chen", party: "D", score: 74, rationale: "Close match on housing and labor. Some divergence on criminal justice." },
@@ -190,98 +182,32 @@ function BillCard({ bill }) {
   )
 }
 
-function PollCard({ poll }) {
-  const [answer, setAnswer] = useState(null)
-  const [ranking, setRanking] = useState(poll.options || [])
-  const [submitted, setSubmitted] = useState(false)
 
-  function handleSubmit() {
-    if (poll.type === 'rank' || answer) setSubmitted(true)
-  }
-
-  function moveItem(index, direction) {
-    const newRanking = [...ranking]
-    const swapIndex = index + direction
-    if (swapIndex < 0 || swapIndex >= newRanking.length) return
-    ;[newRanking[index], newRanking[swapIndex]] = [newRanking[swapIndex], newRanking[index]]
-    setRanking(newRanking)
-  }
-
-  const optionClasses = (opt) =>
-    `px-4 py-1.5 rounded-full text-sm border-2 font-medium transition-colors ${
-      answer === opt
-        ? 'bg-[#1a2744] text-white border-[#1a2744]'
-        : 'border-gray-200 text-[#1a2744] hover:border-[#1a2744]/40'
-    }`
-
+function ActiveBillCard({ bill }) {
   return (
-    <div className="flex flex-col gap-3 bg-gray-50 rounded-xl p-4 mx-5 mb-5">
-      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Community poll</p>
-      <p className="text-sm font-medium text-[#1a2744] leading-snug">{poll.question}</p>
-
-      {!submitted ? (
-        <>
-          {poll.type === 'yesno' && (
-            <div className="flex gap-2">
-              {['Yes', 'No'].map(opt => (
-                <button key={opt} onClick={() => setAnswer(opt)} className={optionClasses(opt)}>{opt}</button>
-              ))}
-            </div>
-          )}
-
-          {poll.type === 'agree' && (
-            <div className="flex gap-2 flex-wrap">
-              {['Agree', 'Neutral', 'Disagree'].map(opt => (
-                <button key={opt} onClick={() => setAnswer(opt)} className={optionClasses(opt)}>{opt}</button>
-              ))}
-            </div>
-          )}
-
-          {poll.type === 'rank' && (
-            <div className="flex flex-col gap-1.5">
-              {ranking.map((item, i) => (
-                <div key={item} className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-400 w-4 font-medium">{i + 1}.</span>
-                  <span className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[#1a2744] font-medium">{item}</span>
-                  <div className="flex gap-0.5">
-                    <button onClick={() => moveItem(i, -1)} className="text-gray-400 hover:text-[#1a2744] px-1.5 py-0.5 rounded">↑</button>
-                    <button onClick={() => moveItem(i, 1)} className="text-gray-400 hover:text-[#1a2744] px-1.5 py-0.5 rounded">↓</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={poll.type !== 'rank' && !answer}
-            className="self-start text-xs font-semibold px-4 py-1.5 rounded-full bg-[#1a2744] text-white hover:bg-[#243460] disabled:opacity-30 transition-colors"
-          >
-            Submit
-          </button>
-        </>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {poll.type === 'rank' ? (
-            <p className="text-sm text-gray-500">Your ranking: <span className="font-medium text-[#1a2744]">{ranking.join(' → ')}</span></p>
-          ) : (
-            <>
-              <p className="text-sm text-gray-500">You voted: <span className="font-semibold text-[#1a2744]">{answer}</span></p>
-              <div className="flex flex-col gap-1.5">
-                {Object.entries(poll.results).map(([opt, pct]) => (
-                  <div key={opt} className="flex items-center gap-2 text-sm">
-                    <span className="w-20 text-gray-500">{opt}</span>
-                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-[#1a2744] h-1.5 rounded-full" style={{ width: `${pct}%` }} />
-                    </div>
-                    <span className="text-gray-400 w-8 text-right text-xs">{pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </>
+    <div className="flex flex-col gap-2 p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-[#1a2744]">{bill.title}</span>
+            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{bill.category}</span>
+          </div>
+          {bill.latest_action && (
+            <p className="text-sm text-gray-500 leading-relaxed">
+              <span className="font-medium">Latest action:</span> {bill.latest_action}
+              {bill.latest_action_date && <span className="text-gray-400"> · {bill.latest_action_date}</span>}
+            </p>
           )}
         </div>
-      )}
+      </div>
+      <a
+        href={bill.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="self-start text-xs font-semibold px-4 py-1.5 rounded-full bg-[#1a2744] text-white hover:bg-[#243460] transition-colors"
+      >
+        View &amp; contact your rep →
+      </a>
     </div>
   )
 }
@@ -289,25 +215,37 @@ function PollCard({ poll }) {
 export default function Results() {
   const navigate = useNavigate()
   const [officials, setOfficials] = useState(MOCK_OFFICIALS)
-  const [bills, setBills] = useState([])
+  const [bills, setBills] = useState(MOCK_BILLS)
   const [gaps, setGaps] = useState(MOCK_GAPS)
 
   useEffect(() => {
     const rawWeights = sessionStorage.getItem('extractedWeights')
     const state = sessionStorage.getItem('state') || 'CA'
-    if (!rawWeights) return
+    if (!rawWeights) { setLoading(false); return }
     const weights = JSON.parse(rawWeights)
 
-    fetch(`${API}/api/score`, {
+    const topCategories = CATEGORIES.filter(c => (weights[c] ?? 50) >= 60)
+    const categoryParam = topCategories.length > 0 ? topCategories.join(',') : ''
+
+    const scoreReq = fetch(`${API}/api/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ weights, state, chamber: 'all' }),
-    })
+    }).then(r => r.json())
+
+    const billsReq = fetch(`${API}/api/bills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights, limit: 6 }),
+    }).then(r => r.json())
+
+    const activeReq = fetch(`${API}/api/bills/active?limit=6${categoryParam ? `&categories=${categoryParam}` : ''}`)
       .then(r => r.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length === 0) return
+
+    Promise.allSettled([scoreReq, billsReq, activeReq]).then(([scoreRes, billsRes, activeRes]) => {
+      if (scoreRes.status === 'fulfilled' && Array.isArray(scoreRes.value) && scoreRes.value.length > 0) {
+        const data = scoreRes.value
         setOfficials(data)
-        // Compute gaps: categories user cares about (≥70) where top officials are weak (<50 avg)
         const computed = CATEGORIES.filter(cat => {
           const userWeight = weights[cat] ?? 50
           if (userWeight < 70) return false
@@ -318,31 +256,25 @@ export default function Results() {
       })
       .catch(() => {})
 
-    const topCategories = CATEGORIES.filter(c => (weights[c] ?? 50) >= CARE_THRESHOLD)
-    const cats = topCategories.length > 0 ? topCategories : CATEGORIES
-    Promise.all(
-      cats.map(cat =>
-        fetch(`${API}/api/bills?category=${cat}&limit=5`)
-          .then(r => r.json())
-          .then(data => data.bills ?? [])
-          .catch(() => [])
-      )
-    ).then(results => {
-      const scored = results
-        .flat()
-        .map(bill => ({
-          ...bill,
-          match: computeMatch(bill, weights),
-          name: bill.title,
-          summary: bill.latest_action || 'No summary available.',
-          url: bill.congress_url || 'https://congress.gov',
-          votes: [],
-        }))
-        .sort((a, b) => b.match - a.match)
-        .slice(0, 6)
-      if (scored.length > 0) setBills(scored)
+    fetch(`${API}/api/bills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights, limit: 6 }),
     })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setBills(data) })
+      .catch(() => {})
   }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-5">
+        <div className="w-10 h-10 rounded-full border-4 border-[#1a2744] border-t-transparent animate-spin" />
+        <p className="text-[#1a2744] font-semibold text-lg">Analyzing your alignment...</p>
+        <p className="text-gray-400 text-sm">Matching your priorities to legislators and bills</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -372,34 +304,34 @@ export default function Results() {
 
           {/* Top officials */}
           <Section title="Top aligned officials">
-            {officials.map((official, i) => (
-              <div key={i}>
-                <div className="flex flex-col gap-3 p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[#1a2744]">{official.name}</span>
-                      <PartyPill party={official.party} />
+            {officials.length === 0
+              ? <p className="p-5 text-sm text-gray-400">No legislators found for your state yet. Try re-running the seed script.</p>
+              : officials.map((official, i) => (
+                <div key={i}>
+                  <div className="flex flex-col gap-3 p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[#1a2744]">{official.name}</span>
+                        <PartyPill party={official.party} />
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-[#1a2744]">{official.score}%</span>
+                        <p className="text-xs text-gray-400">match</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-[#1a2744]">{official.score}%</span>
-                      <p className="text-xs text-gray-400">match</p>
-                    </div>
+                    <ScoreBar score={official.score} />
+                    <p className="text-sm text-gray-500 leading-relaxed">{official.rationale}</p>
                   </div>
-                  <ScoreBar score={official.score} />
-                  <p className="text-sm text-gray-500 leading-relaxed">{official.rationale}</p>
+                  {i < officials.length - 1 && <div className="border-t border-gray-100" />}
                 </div>
-                {i < officials.length - 1 && <div className="border-t border-gray-100" />}
-              </div>
-            ))}
+              ))
+            }
           </Section>
 
           {/* Bills + polls interleaved */}
           <Section title="Matching bills & polls">
-            {bills.length === 0 && (
-              <p className="p-5 text-sm text-gray-400">Loading bills…</p>
-            )}
             {bills.map((bill, i) => (
-              <div key={bill.bill_id ?? bill.id}>
+              <div key={bill.id}>
                 <BillCard bill={bill} />
                 {MOCK_POLLS[i] && <PollCard poll={MOCK_POLLS[i]} />}
                 {i < bills.length - 1 && <div className="border-t border-gray-100" />}
@@ -407,25 +339,33 @@ export default function Results() {
             ))}
           </Section>
 
-          {/* Weak match alerts */}
-          <Section title="Where alignment breaks down">
-            {gaps.map((gap, i) => (
-              <div key={i}>
-                <div className="flex items-start gap-3 p-5">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: '#9b2335' }} />
-                  <div>
-                    <span className="font-semibold text-[#1a2744] text-sm">{gap.category}</span>
-                    <p className="text-sm text-gray-500 mt-0.5">{gap.note}</p>
+          {gaps.length > 0 && (
+            <Section title="Where alignment breaks down">
+              {gaps.map((gap, i) => (
+                <div key={i}>
+                  <div className="flex items-start gap-3 p-5">
+                    <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: '#9b2335' }} />
+                    <div>
+                      <span className="font-semibold text-[#1a2744] text-sm">{gap.category}</span>
+                      <p className="text-sm text-gray-500 mt-0.5">{gap.note}</p>
+                    </div>
                   </div>
+                  {i < gaps.length - 1 && <div className="border-t border-gray-100" />}
                 </div>
-                {i < gaps.length - 1 && <div className="border-t border-gray-100" />}
-              </div>
-            ))}
-          </Section>
+              ))}
+            </Section>
+          )}
 
-          <p className="text-xs text-gray-400 text-center">
-            "Here's who aligns with your stated priorities" — not "Vote for X"
-          </p>
+          {activeLegislation.length > 0 && (
+            <Section title="Active legislation you can act on">
+              {activeLegislation.map((bill, i) => (
+                <div key={bill.id}>
+                  <ActiveBillCard bill={bill} />
+                  {i < activeLegislation.length - 1 && <div className="border-t border-gray-100" />}
+                </div>
+              ))}
+            </Section>
+          )}
 
           <Button
             size="lg"
