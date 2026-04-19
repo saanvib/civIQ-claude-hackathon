@@ -199,7 +199,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     env: {
-      propublica:  !!process.env.PROPUBLICA_API_KEY,
+      congress:    !!process.env.CONGRESS_API_KEY,
       supabase_url: !!process.env.SUPABASE_URL,
       supabase_key: !!process.env.SUPABASE_ANON_KEY,
       anthropic:   !!process.env.ANTHROPIC_API_KEY,
