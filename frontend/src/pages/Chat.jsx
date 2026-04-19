@@ -163,7 +163,7 @@ export default function Chat() {
               A few quick questions
             </h1>
             <p className="text-gray-500 text-lg leading-relaxed">
-              Help Claude understand your priorities better.
+              Help us understand your priorities better.
             </p>
           </div>
 
