@@ -4,12 +4,32 @@ import express from 'express'
 import cors from 'cors'
 import { extractWeights, explainAlignment, clarifyWeights } from './lib/claude.js'
 import { getAllLegislators, getLegislatorVector } from './vector_builder.js'
+import { getSupabase } from './supabase_client.js'
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }))
 app.use(express.json())
 
 const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
+
+const STATE_NAMES = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
+  CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',
+  HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',
+  KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',
+  MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',
+  MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',
+  NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',
+  OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',
+  SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',
+  VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',
+  DC:'District of Columbia',
+}
+
+function expandState(s) {
+  if (!s) return null
+  return STATE_NAMES[s.toUpperCase()] ?? s
+}
 
 const MOCK_LEGISLATORS = [
   {
@@ -101,13 +121,13 @@ app.post('/api/clarify', async (req, res) => {
 // Response: [{ id, name, party, state, chamber, vote_vector }] or { count, legislators }
 app.get('/api/legislators', async (req, res) => {
   const { state, chamber, party, limit } = req.query
+  const fullState = expandState(state)
 
   try {
     let legislators = await getAllLegislators()
 
-    // Filter by state if provided (for app compatibility)
-    if (state) {
-      legislators = legislators.filter(l => l.state === state)
+    if (fullState) {
+      legislators = legislators.filter(l => l.state === fullState)
     }
 
     // Optional filters
@@ -121,8 +141,7 @@ app.get('/api/legislators', async (req, res) => {
       legislators = legislators.slice(0, parseInt(limit, 10))
     }
 
-    // If state was provided, return array directly (app expects this)
-    if (state) {
+    if (fullState) {
       res.json(legislators)
     } else {
       res.json({ count: legislators.length, legislators })
@@ -130,13 +149,13 @@ app.get('/api/legislators', async (req, res) => {
   } catch (err) {
     console.error('DB fetch error, returning mock data:', err)
     let filtered = MOCK_LEGISLATORS
-    if (state) {
-      filtered = filtered.filter(l => l.state === state)
+    if (fullState) {
+      filtered = filtered.filter(l => l.state === fullState)
     }
     if (chamber && chamber !== 'all') {
       filtered = filtered.filter(l => l.chamber === chamber)
     }
-    res.json(state ? filtered : { count: filtered.length, legislators: filtered })
+    res.json(fullState ? filtered : { count: filtered.length, legislators: filtered })
   }
 })
 
@@ -150,10 +169,12 @@ app.post('/api/score', async (req, res) => {
     return res.status(400).json({ error: 'weights and state are required.' })
   }
 
+  const fullState = expandState(state)
+
   let legislators
   try {
     legislators = await getAllLegislators()
-    legislators = legislators.filter(l => l.state === state && (chamber === 'all' || l.chamber === chamber))
+    legislators = legislators.filter(l => l.state === fullState && (chamber === 'all' || l.chamber === chamber))
   } catch (err) {
     console.error('DB fetch error, using mock legislators:', err)
     legislators = chamber === 'all'
@@ -182,12 +203,53 @@ app.post('/api/score', async (req, res) => {
     state: l.state,
     chamber: l.chamber,
     score: l.score,
+    vote_vector: l.vote_vector ?? null,
     rationale: rationales[i].status === 'fulfilled'
       ? rationales[i].value
       : 'Explanation unavailable.',
   }))
 
   res.json(results)
+})
+
+// POST /api/bills
+// Body: { weights, limit? }
+// Response: [{ id, name, summary, match, category, url, votes }]
+app.post('/api/bills', async (req, res) => {
+  const { weights = {}, limit = 6 } = req.body ?? {}
+
+  try {
+    const sb = getSupabase()
+    const { data, error } = await sb
+      .from('bills')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(250)
+
+    if (error) throw error
+
+    const bills = (data ?? [])
+      .map(bill => {
+        const w = weights[bill.category] ?? 50
+        const match = bill.direction === 'pro' ? w : 100 - w
+        return {
+          id: bill.bill_id,
+          name: bill.title,
+          summary: bill.latest_action || bill.policy_area || '',
+          match: Math.round(match),
+          category: bill.category,
+          url: bill.congress_url,
+          votes: [],
+        }
+      })
+      .sort((a, b) => b.match - a.match)
+      .slice(0, limit)
+
+    res.json(bills)
+  } catch (err) {
+    console.error('Bills fetch error:', err)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ── Data layer endpoints (built by data team) ─────────────────────────────────
