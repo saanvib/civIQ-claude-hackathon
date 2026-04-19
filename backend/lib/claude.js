@@ -187,3 +187,22 @@ export async function explainAlignment(userWeights, legislator, score) {
 
   return msg.content[0]?.text?.trim() ?? ''
 }
+
+const SHORT_TITLE_PROMPT = `You are a plain-language editor. Given a list of U.S. congressional bill titles, generate a concise 4–6 word descriptive title for each that captures the core subject of the bill in plain English. Use title case. Do not start with "A Bill" or "An Act". Return ONLY a valid JSON object mapping each bill ID to its short title. No commentary, no markdown.`
+
+export async function summarizeBillTitles(bills) {
+  if (!bills.length) return {}
+  const input = bills.map(b => `${b.id}: ${b.title}`).join('\n')
+  const msg = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 512,
+    system: SHORT_TITLE_PROMPT,
+    messages: [{ role: 'user', content: input }],
+  })
+  const raw = (msg.content[0]?.text?.trim() ?? '{}').replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return {}
+  }
+}

@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import express from 'express'
 import cors from 'cors'
-import { extractWeights, explainAlignment, clarifyWeights } from './lib/claude.js'
+import { extractWeights, explainAlignment, clarifyWeights, summarizeBillTitles } from './lib/claude.js'
 import { getAllLegislators, getLegislatorVector } from './vector_builder.js'
 import { fetchActiveBills } from './congress_api.js'
 import { getSupabase } from './supabase_client.js'
@@ -257,7 +257,10 @@ app.post('/api/bills', async (req, res) => {
       .sort((a, b) => b.match - a.match)
       .slice(0, limit)
 
-    res.json(bills)
+    const shortTitles = await summarizeBillTitles(bills.map(b => ({ id: b.id, title: b.name })))
+    const billsWithTitles = bills.map(b => ({ ...b, short_title: shortTitles[b.id] ?? null }))
+
+    res.json(billsWithTitles)
   } catch (err) {
     console.error('Bills fetch error:', err)
     res.status(500).json({ error: err.message })
@@ -318,7 +321,9 @@ app.get('/api/bills/active', async (req, res) => {
   const limit = parseInt(req.query.limit ?? '20', 10)
   try {
     const bills = await fetchActiveBills(categories, limit)
-    res.json(bills)
+    const shortTitles = await summarizeBillTitles(bills.map(b => ({ id: b.id, title: b.title })))
+    const billsWithTitles = bills.map(b => ({ ...b, short_title: shortTitles[b.id] ?? null }))
+    res.json(billsWithTitles)
   } catch (err) {
     console.error('/api/bills/active error:', err.message)
     res.status(500).json({ error: err.message })
