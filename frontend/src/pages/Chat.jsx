@@ -6,27 +6,18 @@ import { ChevronRight } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-// Extract plain text from a question (object or legacy string)
-const qText = q => (typeof q === 'string' ? q : q?.question ?? '')
-
 export default function Chat() {
   const navigate = useNavigate()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeQuestion, setActiveQuestion] = useState(null)
-  const [sliderValue, setSliderValue] = useState(50)
   const questionQueue = useRef([])   // questions not yet shown
   const askedQuestions = useRef([])  // question texts already shown
   const collectedAnswers = useRef([]) // answers in order
   const latestWeights = useRef(null)
   const modeRef = useRef('sliders')
   const initRan = useRef(false)
-
-  useEffect(() => {
-    if (activeQuestion?.type === 'slider') setSliderValue(50)
-  }, [activeQuestion])
 
   useEffect(() => {
     if (initRan.current) return
@@ -81,19 +72,17 @@ export default function Chat() {
         const questions = data.questions ?? []
         if (questions.length > 0) {
           const [first, ...rest] = questions
-          askedQuestions.current = [qText(first)]
+          askedQuestions.current = [first]
           questionQueue.current = rest
-          setActiveQuestion(first)
-          setMessages([{ role: 'claude', text: qText(first) }])
+          setMessages([{ role: 'claude', text: first }])
         } else {
           navigate('/results')
           return
         }
       } catch {
-        const fallback = { type: 'open', question: 'What policy areas matter most to you right now?' }
-        askedQuestions.current = [fallback.question]
-        setActiveQuestion(fallback)
-        setMessages([{ role: 'claude', text: fallback.question }])
+        const fallback = 'What policy areas matter most to you right now?'
+        askedQuestions.current = [fallback]
+        setMessages([{ role: 'claude', text: fallback }])
       }
 
       setLoading(false)
@@ -102,11 +91,11 @@ export default function Chat() {
     init()
   }, [])
 
-  async function handleSubmitAnswer(answer) {
-    if (!answer || loading) return
+  async function handleSend() {
+    if (!input.trim() || loading) return
 
+    const answer = input.trim()
     setInput('')
-    setActiveQuestion(null)
     setMessages(prev => [...prev, { role: 'user', text: answer }])
     collectedAnswers.current = [...collectedAnswers.current, answer]
 
@@ -140,12 +129,11 @@ export default function Chat() {
     // If there are queued questions, show the next one after a short typing delay
     if (questionQueue.current.length > 0) {
       const [next, ...rest] = questionQueue.current
-      askedQuestions.current = [...askedQuestions.current, qText(next)]
+      askedQuestions.current = [...askedQuestions.current, next]
       questionQueue.current = rest
       setLoading(true)
       await new Promise(r => setTimeout(r, 900))
-      setActiveQuestion(next)
-      setMessages(prev => [...prev, { role: 'claude', text: qText(next) }])
+      setMessages(prev => [...prev, { role: 'claude', text: next }])
       setLoading(false)
       return
     }
@@ -173,11 +161,10 @@ export default function Chat() {
       const followUps = data.questions ?? []
       if (followUps.length > 0) {
         const [first, ...rest] = followUps
-        askedQuestions.current = [...askedQuestions.current, qText(first)]
+        askedQuestions.current = [...askedQuestions.current, first]
         collectedAnswers.current = []
         questionQueue.current = rest
-        setActiveQuestion(first)
-        setMessages(prev => [...prev, { role: 'claude', text: qText(first) }])
+        setMessages(prev => [...prev, { role: 'claude', text: first }])
       } else {
         sessionStorage.setItem('neutralCategories', JSON.stringify(data.unclear_categories ?? []))
         setDone(true)
@@ -187,17 +174,6 @@ export default function Chat() {
     }
 
     setLoading(false)
-  }
-
-  function handleSend() {
-    if (!input.trim()) return
-    handleSubmitAnswer(input.trim())
-  }
-
-  function handleSliderConfirm() {
-    const label = sliderValue >= 50 ? activeQuestion.max_label : activeQuestion.min_label
-    const answerText = `${sliderValue}/100 toward "${label}"`
-    handleSubmitAnswer(answerText)
   }
 
   return (
@@ -260,43 +236,6 @@ export default function Chat() {
               See my results
               <ChevronRight size={16} className="ml-1 opacity-60" />
             </Button>
-          ) : activeQuestion?.type === 'multiple_choice' ? (
-            <div className="flex flex-wrap gap-2">
-              {(activeQuestion.options ?? []).map(option => (
-                <button
-                  key={option}
-                  disabled={loading}
-                  onClick={() => handleSubmitAnswer(option)}
-                  className="px-4 py-2.5 rounded-xl border-2 border-[#1a2744] text-[#1a2744] font-medium text-sm hover:bg-[#1a2744] hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          ) : activeQuestion?.type === 'slider' ? (
-            <div className="flex flex-col gap-3 w-full">
-              <div className="flex justify-between text-sm text-gray-500 px-1">
-                <span>{activeQuestion.min_label}</span>
-                <span className="font-semibold text-[#1a2744]">{sliderValue}</span>
-                <span>{activeQuestion.max_label}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={sliderValue}
-                disabled={loading}
-                onChange={e => setSliderValue(Number(e.target.value))}
-                className="w-full accent-[#1a2744] cursor-pointer disabled:opacity-40"
-              />
-              <Button
-                className="px-6 py-5 font-semibold bg-[#1a2744] hover:bg-[#243460] text-white rounded-xl cursor-pointer disabled:opacity-40 self-start"
-                onClick={handleSliderConfirm}
-                disabled={loading}
-              >
-                Confirm
-              </Button>
-            </div>
           ) : (
             <div className="flex gap-3 items-end">
               <Textarea
