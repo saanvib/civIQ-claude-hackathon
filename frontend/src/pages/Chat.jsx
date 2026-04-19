@@ -117,7 +117,7 @@ export default function Chat() {
         </div>
 
         {done ? (
-          <Button size="xl" className="text-xl py-2" onClick={handleResults}>
+          <Button size="xl" className="text-xl py-2 cursor-pointer hover:bg-gray-800" onClick={handleResults}>
             See my results
           </Button>
         ) : (
@@ -135,7 +135,7 @@ export default function Chat() {
                 }
               }}
             />
-            <Button className="text-base px-6 h-9" onClick={handleSend} disabled={!input.trim() || loading}>
+            <Button className="text-base px-6 h-9 cursor-pointer hover:bg-gray-800" onClick={handleSend} disabled={!input.trim() || loading}>
               Send
             </Button>
           </div>

@@ -365,7 +365,7 @@ export default function Results() {
           "Here's who aligns with your stated priorities" — not "Vote for X"
         </p>
 
-        <Button variant="outline" onClick={() => navigate('/')}>
+        <Button variant="outline" className="cursor-pointer" onClick={() => navigate('/')}>
           Start over
         </Button>
 
