@@ -33,13 +33,13 @@ export default function Survey() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl flex flex-col gap-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+      <div className="w-full max-w-2xl flex flex-col gap-10">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
+          <h2 className="text-4xl font-semibold tracking-tight">
             {mode === 'sliders' ? 'Set your priorities' : 'Describe your values'}
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-2 text-xl">
             {mode === 'sliders'
               ? '0 = strongly oppose, 100 = strongly support'
               : 'Write freely — Claude will extract your priorities'}
@@ -47,10 +47,10 @@ export default function Survey() {
         </div>
 
         {mode === 'sliders' ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-8">
             {CATEGORIES.map(category => (
-              <div key={category} className="flex flex-col gap-2">
-                <div className="flex justify-between text-sm">
+              <div key={category} className="flex flex-col gap-3">
+                <div className="flex justify-between text-lg">
                   <span className="font-medium">{category}</span>
                   <span className="text-muted-foreground">{weights[category]}</span>
                 </div>
@@ -60,6 +60,7 @@ export default function Survey() {
                   step={1}
                   value={[weights[category]]}
                   onValueChange={val => handleSliderChange(category, val)}
+                  className="h-3 **:[[role=slider]]:h-5 **:[[role=slider]]:w-5"
                 />
               </div>
             ))}
@@ -67,14 +68,15 @@ export default function Survey() {
         ) : (
           <Textarea
             placeholder="e.g. I care a lot about climate change and affordable healthcare. I'm neutral on immigration..."
-            className="min-h-48 text-base"
+            className="min-h-64 text-xl"
             value={text}
             onChange={e => setText(e.target.value)}
           />
         )}
 
         <Button
-          size="lg"
+          size="xl"
+          className="text-xl py-3"
           onClick={handleSubmit}
           disabled={mode === 'text' && text.trim().length < 10}
         >

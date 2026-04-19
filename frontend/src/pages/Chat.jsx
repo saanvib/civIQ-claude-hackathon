@@ -80,23 +80,23 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl flex flex-col gap-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
+      <div className="w-full max-w-2xl flex flex-col gap-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">A few quick questions</h2>
-          <p className="text-muted-foreground mt-1">
+          <h2 className="text-4xl font-semibold tracking-tight">A few quick questions</h2>
+          <p className="text-muted-foreground mt-2 text-xl">
             Help Claude understand your priorities better
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 min-h-64">
+        <div className="flex flex-col gap-4 min-h-72">
           {messages.map((msg, i) => (
             <div
               key={i}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`rounded-2xl px-4 py-3 max-w-sm text-sm leading-relaxed ${
+                className={`rounded-2xl px-5 py-3 max-w-lg text-base leading-relaxed ${
                   msg.role === 'claude'
                     ? 'bg-muted text-foreground'
                     : 'bg-primary text-primary-foreground'
@@ -109,7 +109,7 @@ export default function Chat() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-muted rounded-2xl px-4 py-3 text-sm text-muted-foreground">
+              <div className="bg-muted rounded-2xl px-5 py-4 text-base text-muted-foreground">
                 Thinking...
               </div>
             </div>
@@ -117,14 +117,15 @@ export default function Chat() {
         </div>
 
         {done ? (
-          <Button size="lg" onClick={handleResults}>
+          <Button size="xl" className="text-xl py-2" onClick={handleResults}>
             See my results
           </Button>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-3 items-center">
             <Textarea
               placeholder="Type your response..."
-              className="min-h-12 text-sm resize-none"
+              rows={1}
+              className="h-10 text-base resize-none"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => {
@@ -134,7 +135,7 @@ export default function Chat() {
                 }
               }}
             />
-            <Button onClick={handleSend} disabled={!input.trim() || loading}>
+            <Button className="text-base px-6 h-9" onClick={handleSend} disabled={!input.trim() || loading}>
               Send
             </Button>
           </div>

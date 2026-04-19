@@ -6,25 +6,25 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-8 px-4">
-      <div className="text-center max-w-xl">
-        <h1 className="text-4xl font-semibold tracking-tight mb-3">
+      <div className="text-center max-w-2xl flex flex-col gap-6">
+        <h1 className="text-6xl font-semibold tracking-tight mb-3">
           Find your political match
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-3xl">
           See which legislators and bills align with your priorities — no spin, no agenda.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <Button size="lg" onClick={() => navigate('/survey?mode=sliders')}>
+        <Button size="lg" className="text-xl px-10 py-6 hover:bg-gray-800 cursor-pointer" onClick={() => navigate('/survey?mode=sliders')}>
           Use value sliders
         </Button>
-        <Button size="lg" variant="outline" onClick={() => navigate('/survey?mode=text')}>
+        <Button size="lg" variant="outline" className="text-xl px-10 py-6 cursor-pointer" onClick={() => navigate('/survey?mode=text')}>
           Describe in your own words
         </Button>
       </div>
 
-      <p className="text-sm text-muted-foreground">
+      <p className="text-lg text-muted-foreground">
         "Here's who aligns with your stated priorities" — not "Vote for X"
       </p>
     </div>
