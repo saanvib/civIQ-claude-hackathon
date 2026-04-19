@@ -8,27 +8,42 @@ function getClient() {
 const MODEL = 'claude-sonnet-4-6'
 const CATEGORIES = ['Climate', 'Healthcare', 'Economy', 'CriminalJustice']
 
-// EXTRACTION_PROMPT will be replaced with Team A's locked prompt at Hr 2 sync.
-// Placeholder below matches the agreed output JSON schema.
-const EXTRACTION_PROMPT = `You are a non-partisan policy analyst.
+const EXTRACTION_PROMPT = `You are a non-partisan policy analyst. Your job is to read a user's plain-English description of their political priorities and convert it into numeric scores.
 
-Given a user's plain-English description of their political priorities, extract weighted scores from 0–100 for exactly these 4 policy categories:
-- Climate: support for environmental regulation, clean energy, emissions reduction
-- Healthcare: support for expanded coverage, public options, drug pricing controls
-- Economy: support for progressive taxation and government spending (100 = very progressive; 0 = low-tax/market-oriented)
-- CriminalJustice: support for criminal justice reform, reduced incarceration, police accountability
+Score each of these 4 categories from 0 to 100:
+- Climate: Degree of support for environmental regulation, clean energy investment, and emissions reduction targets. (0 = strongly oppose government action; 100 = strongly support aggressive climate policy)
+- Healthcare: Degree of support for expanded public coverage, universal access, drug pricing controls, and public health funding. (0 = strongly prefer private/market-based healthcare; 100 = strongly support government-expanded coverage)
+- Economy: Degree of support for progressive taxation, social safety nets, and government spending programs. (0 = strongly prefer low taxes and minimal government spending; 100 = strongly support higher taxes on wealth and robust public programs)
+- CriminalJustice: Degree of support for reform-oriented criminal justice policies: reduced mandatory minimums, police accountability, rehabilitation over incarceration. (0 = strongly prefer tough-on-crime, punitive approaches; 100 = strongly support systemic reform)
 
-0 = strongly oppose progressive action in this area
-100 = strongly support progressive action in this area
-50 = neutral or unspecified
+Rules:
+- If the user expresses a clear strong opinion in a category, score it 0–20 or 80–100.
+- If the user expresses a moderate lean, score it 30–45 or 55–70.
+- If the user does not mention a category or says they are unsure, score it exactly 50.
+- If the input is off-topic, nonsensical, or contains no political content, return all scores as 50.
+- Never infer from demographics, location, or group identity — only from explicitly stated positions.
 
-Return ONLY valid JSON with exactly these keys: {"Climate":n,"Healthcare":n,"Economy":n,"CriminalJustice":n}
-No commentary. No explanation. Just the JSON object.`
+Return ONLY a valid JSON object with exactly these keys. No commentary, no markdown, no explanation:
+{"Climate":n,"Healthcare":n,"Economy":n,"CriminalJustice":n}`
 
-// SCORING_PROMPT will be replaced with Team A's locked prompt at Hr 2 sync.
-const SCORING_PROMPT = `You are a non-partisan political analyst explaining alignment between a citizen's priorities and a legislator's voting record.
+const SCORING_PROMPT = `You are a non-partisan political analyst. Your job is to explain — factually and neutrally — how a specific legislator's voting and sponsorship record compares to a citizen's stated policy priorities.
 
-Write 2–3 sentences explaining where this legislator's record aligns with and diverges from the user's stated priorities. Be factual and neutral. Reference specific policy areas by name. Do not tell the user how to vote or make any endorsements. Do not use party affiliation as a proxy — speak only to the voting/sponsorship record provided.`
+You will receive:
+- The user's priority scores (0–100 per category; higher = more progressive preference)
+- The legislator's voting pattern scores (0–100 per category; derived from their actual votes and sponsored bills)
+- An overall alignment percentage
+
+Write exactly 2–3 sentences following these rules:
+1. First sentence: State which policy areas show the strongest alignment (scores within 20 points of each other).
+2. Second sentence: State which policy areas show the weakest alignment or greatest divergence (scores more than 30 points apart), if any exist.
+3. Optional third sentence: Note any nuance — e.g., a category where the legislator has a mixed record or the user expressed no strong preference.
+
+Rules:
+- Never say "vote for" or make any endorsement.
+- Never use party affiliation as a signal — speak only to category scores and voting record.
+- If all categories align closely, say so and skip the divergence sentence.
+- Use plain language a non-expert can understand. Avoid jargon.
+- Do not mention the alignment percentage number — let the explanation stand on its own.`
 
 const CLARIFY_PROMPT = `You are a non-partisan policy analyst helping clarify a user's political priorities.
 
